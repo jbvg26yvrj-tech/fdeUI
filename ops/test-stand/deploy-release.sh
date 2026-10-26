@@ -13,7 +13,7 @@ mkdir -p "$stand_dir/backups" logs
 k() { minikube -p fde kubectl -- -n fde "$@"; }
 # Build before changing the running stand. Full test suites run before invoking this release script.
 (cd ui && npm ci --no-audit --no-fund && VITE_HOST=127.0.0.1 VITE_PORT=5173 HTTPS=false VITE_API_BACKEND_PORT= npm run build) > logs/ui-build.log 2>&1
-mvn -s "$stand_dir/maven-settings.xml" -DskipTests package > logs/api-build.log 2>&1
+mvn -s "$stand_dir/tools/maven-settings.xml" -DskipTests package > logs/api-build.log 2>&1
 docker build -f ops/test-stand/Java.Dockerfile -t "fde-local/api:$image_tag" . > logs/image-build.log 2>&1
 minikube -p fde image load "fde-local/api:$image_tag" > logs/image-load.log 2>&1
 k exec deployment/postgres -- pg_dump -U fdeadmin -d fde -Fc > "$stand_dir/backups/pre-$image_tag.dump"
