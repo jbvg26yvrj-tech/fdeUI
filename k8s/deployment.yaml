@@ -1,0 +1,156 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fde-api
+  namespace: fde
+  labels:
+    app: fde-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fde-api
+  template:
+    metadata:
+      labels:
+        app: fde-api
+      annotations:
+        prometheus.io/path: /actuator/prometheus
+        prometheus.io/port: '8080'
+        prometheus.io/scrape: 'true'
+    spec:
+      terminationGracePeriodSeconds: 30
+      enableServiceLinks: false
+      volumes:
+        - name: tmp-volume
+          emptyDir:
+            sizeLimit: 100Mi
+      containers:
+        - name: fde-api
+          image: sberworks.ru/spasibo_dev/ci90000782_bilt_dev/fde-api:2.0.0-20052026-1640
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: int-postgres
+                  key: DB_HOST
+            - name: DB_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: int-postgres
+                  key: DB_PORT
+            - name: DB_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: int-postgres
+                  key: DB_NAME
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: int-postgres
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: int-postgres
+                  key: DB_PASSWORD
+            - name: FDE_DISPATCHER_URL
+              value: http://fde-dispatcher.fde.svc.cluster.local
+            - name: CORS_ALLOWED_ORIGINS
+              valueFrom:
+                secretKeyRef:
+                  name: web-ui
+                  key: CORS_ALLOWED_ORIGINS
+            - name: FDE_DISPATCHER_CONNECT_TIMEOUT
+              value: '5s'
+            - name: FDE_DISPATCHER_RESPONSE_TIMEOUT
+              value: '30s'
+            - name: JWT_ACCESS_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: web-ui
+                  key: JWT_ACCESS_SECRET
+            - name: JWT_REFRESH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: web-ui
+                  key: JWT_REFRESH_SECRET
+            - name: JWT_ACCESS_EXPIRATION
+              value: '600000'
+            - name: JWT_REFRESH_EXPIRATION
+              value: '9000000'
+            - name: SERVER_PORT
+              value: '8080'
+            - name: LOG_LEVEL
+              value: INFO
+          resources:
+            limits:
+              cpu: 300m
+              memory: 1Gi
+            requests:
+              cpu: 50m
+              memory: 512Mi
+          volumeMounts:
+            - name: tmp-volume
+              mountPath: /tmp
+          startupProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            failureThreshold: 120
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 90
+            timeoutSeconds: 3
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            initialDelaySeconds: 90
+            timeoutSeconds: 3
+            periodSeconds: 5
+            failureThreshold: 2
+            successThreshold: 2
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep", "5"]
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            capabilities:
+              drop:
+                - ALL
+            runAsUser: 1000
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            seccompProfile:
+              type: RuntimeDefault
+      serviceAccountName: fde-developer
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: role
+                    operator: In
+                    values:
+                      - app
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - fde-api
+                topologyKey: kubernetes.io/hostname

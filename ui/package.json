@@ -1,0 +1,73 @@
+{
+  "name": "fde-ui-web",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --mode production",
+    "build": "vite build --mode production",
+    "build:local": "vite build --mode local_",
+    "build:analyze": "cross-env ANALYZE=true vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "start": "node dist/server.js",
+    "copy:build:fde-ui": "node ./scripts/copy-build.js \"C:\\Users\\ttabdukarov\\IdeaProjects\\fde-manager\\backend\\src\\main\\resources\\static\"",
+    "build-copy": "npm run build && npm run copy:build:fde-ui",
+    "test": "cross-env NODE_OPTIONS=--experimental-require-module vitest",
+    "test:ui": "cross-env NODE_OPTIONS=--experimental-require-module vitest --ui",
+    "test:run": "cross-env NODE_OPTIONS=--experimental-require-module vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.25.0",
+    "@tailwindcss/cli": "^4.1.12",
+    "@tailwindcss/vite": "^4.1.12",
+    "@tanstack/react-query": "^4.41.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.1.0",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react-swc": "^3.9.0",
+    "@vitest/ui": "^4.1.2",
+    "concurrently": "^9.2.0",
+    "cross-env": "^10.1.0",
+    "eslint": "^9.31.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.19",
+    "globals": "^16.0.0",
+    "husky": "^9.1.7",
+    "jsdom": "^27.0.1",
+    "lint-staged": "^16.1.2",
+    "prettier": "^3.6.2",
+    "rollup-plugin-visualizer": "^6.0.5",
+    "sonner": "^2.0.7",
+    "tailwindcss": "^4.1.12",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.30.1",
+    "vite": "^6.3.5",
+    "vitest": "^4.1.2"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "cors": "^2.8.5",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^7.7.0",
+    "uuid": "^11.1.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  }
+}

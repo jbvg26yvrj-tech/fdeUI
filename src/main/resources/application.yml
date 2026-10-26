@@ -1,0 +1,106 @@
+spring:
+  application:
+    name: fde-api
+
+  datasource:
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}?currentSchema=pipelines
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    properties:
+      hibernate:
+        # default_schema = 'pipelines', но auth-сущности используют явную
+        # аннотацию @Table(schema = "auth"), поэтому ddl-auto: validate корректно
+        # работает для обеих схем без изменения этой настройки.
+        default_schema: pipelines
+    open-in-view: false
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+
+  flyway:
+    enabled: true
+    schemas: pipelines,auth
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    baseline-version: 1
+
+  mvc:
+    throw-exception-if-no-handler-found: true
+
+  web:
+    resources:
+      add-mappings: false
+
+server:
+  port: ${SERVER_PORT:8082}
+  shutdown: graceful
+
+fde:
+  dispatcher:
+    url: ${FDE_DISPATCHER_URL}
+    connect-timeout: ${FDE_DISPATCHER_CONNECT_TIMEOUT:5s}
+    response-timeout: ${FDE_DISPATCHER_RESPONSE_TIMEOUT:30s}
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      dispatcher:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        slidingWindowType: COUNT_BASED
+  retry:
+    instances:
+      dispatcher:
+        maxAttempts: 2
+        waitDuration: 1s
+        retryExceptions:
+          - org.springframework.web.reactive.function.client.WebClientRequestException
+          - java.net.ConnectException
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,db,dispatcher
+
+app:
+  jwt:
+    # без значений по умолчанию — секреты ОБЯЗАТЕЛЬНО задаются через переменные окружения.
+    # JwtProperties @PostConstruct отклоняет секреты, содержащие "default" или короче 32 символов.
+    access-secret: ${JWT_ACCESS_SECRET}
+    refresh-secret: ${JWT_REFRESH_SECRET}
+    access-expiration: ${JWT_ACCESS_EXPIRATION:600000}
+    refresh-expiration: ${JWT_REFRESH_EXPIRATION:9000000}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: authorization,content-type,x-correlation-id
+    exposed-headers: authorization,x-correlation-id
+    max-age: 3600
+    allow-credentials: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    ru.spasibo.bilt.fdeapi: ${LOG_LEVEL:INFO}
