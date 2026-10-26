@@ -25,32 +25,32 @@
 
 ## Task 1 — LDAP identity and settings
 Owner: LDAP worker. Backend auth/user/configuration classes, new ldap package, pom.xml, migrations V9 (confirm latest first), corresponding tests. No role/pipeline/session classes or UI.
-- [ ] Add failing tests for auto-provision/repeat login, disabled identity, encrypted secret roundtrip and hidden secret responses, settings admin denial, sync failure preserving activity and session revocation.
-- [ ] Implement LDAP adapter with real bind/search, escaped filter values, stable ID, AD activity checks, TLS/timeouts and integration tests against in-memory LDAP server.
-- [ ] Persist config and user identity metadata; coordinate sync through database lock and apply only complete results. Preserve manual blocks and check current user activity for JWT/refresh.
-- [ ] Run targeted Maven tests; preserve existing constructors/contracts where tests rely on them or update tests meaningfully. Report exact commands and failures.
+- [x] Add failing tests for auto-provision/repeat login, disabled identity, encrypted secret roundtrip and hidden secret responses, settings admin denial, sync failure preserving activity and session revocation.
+- [x] Implement LDAP adapter with real bind/search, escaped filter values, stable ID, AD activity checks, TLS/timeouts and integration tests against in-memory LDAP server.
+- [x] Persist config and user identity metadata; coordinate sync through database lock and apply only complete results. Preserve manual blocks and check current user activity for JWT/refresh.
+- [x] Run targeted Maven tests; preserve existing constructors/contracts where tests rely on them or update tests meaningfully. Report exact commands and failures.
 
 ## Task 2 — Role scopes and server enforcement
 Owner: access worker. Role entities/DTOs/ports/adapters/controllers, pipeline/session services and trigger/schedule scope enforcement, new AccessScopeService, migration V10 and corresponding tests. No auth/user lifecycle files, pom or UI.
-- [ ] Add failing tests: DWH sees DWH→PC and OFD→DWH but not PC→OFD; two roles union; empty scopes deny; ADMIN bypass.
-- [ ] Persist role clientCodes in dedicated table; seed roles and read resource assignments without overwriting existing roles.
-- [ ] Apply one policy before pagination and to by-ID reads, sessions, create/update/delete, triggers, schedules, batch actions. Filter errors deny. Existing RLS remains an additional restriction.
-- [ ] Test direct-ID and mutation bypass attempts, custom role scope assignment and denied non-admin role editing.
+- [x] Add failing tests: DWH sees DWH→PC and OFD→DWH but not PC→OFD; two roles union; empty scopes deny; ADMIN bypass.
+- [x] Persist role clientCodes in dedicated table; seed roles and read resource assignments without overwriting existing roles.
+- [x] Apply one policy before pagination and to by-ID reads, sessions, create/update/delete, triggers, schedules, batch actions. Filter errors deny. Existing RLS remains an additional restriction.
+- [x] Test direct-ID and mutation bypass attempts, custom role scope assignment and denied non-admin role editing.
 
 ## Task 3 — UI
 Owner: UI worker. ui/** only, including tests/config/package lock. Use frontend-design for intentional FDE login design.
-- [ ] Add failing tests for provider switch, no-permission landing, ADMIN-only settings and role client-code form.
-- [ ] Implement new login, about page, settings LDAP form/test/sync state, protected routes and menu. Preserve existing registration/local flow and avoid exposing settings during context loading.
-- [ ] Extend existing role form/types/API with clientCodes; unknown or missing scopes must never imply unrestricted access.
-- [ ] Run UI tests, build and type checking. Verify responsive layout and accessible labels.
+- [x] Add failing tests for provider switch, no-permission landing, ADMIN-only settings and role client-code form.
+- [x] Implement new login, about page, settings LDAP form/test/sync state, protected routes and menu. Preserve existing registration/local flow and avoid exposing settings during context loading.
+- [x] Extend existing role form/types/API with clientCodes; unknown or missing scopes must never imply unrestricted access.
+- [x] Run UI tests, build and type checking. Verify responsive layout and accessible labels.
 
 ## Task 4 — Integration and delivery
 Owner: parent. docs, deployment configuration, cross-component integration fixes and verification.
-- [ ] Review exact API shapes, migration numbering and identity/scopes consistency; compile whole backend, run full tests and UI build.
-- [ ] Independent review of integrated diff focusing on authorization, LDAP identity binding, TLS, sync failure handling and secret exposure; fix verified findings.
-- [ ] Package from new repository, back up test DB, supply encryption key as deployment secret, deploy image and verify health.
-- [ ] Verify browser login/settings/about/roles, API client-scope cases, and LDAP integration through test directory. Corporate AD cannot be claimed tested without its connection details.
-- [ ] Update operations docs, record validation and commits; report URL and remaining real-AD configuration.
+- [x] Review exact API shapes, migration numbering and identity/scopes consistency; compile whole backend, run full tests and UI build.
+- [x] Independent review of integrated diff focusing on authorization, LDAP identity binding, TLS, sync failure handling and secret exposure; fix verified findings.
+- [x] Package from new repository, back up test DB, supply encryption key as deployment secret, deploy image and verify health.
+- [x] Verify browser login/settings/about/roles, API client-scope cases, and LDAP integration through test directory. Corporate AD cannot be claimed tested without its connection details.
+- [x] Update operations docs, record validation and commits; report URL and remaining real-AD configuration.
 
 ## Integration ledger
 - Preflight: auth worker owns user lifecycle; scope worker owns role/pipeline/session; UI consumes explicit HTTP contracts. No overlapping implementation files; parent resolves integration.
