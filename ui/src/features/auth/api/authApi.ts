@@ -11,6 +11,9 @@ import type {
 } from '../types/types';
 
 export const authApi = {
+  async providers(): Promise<{ ldapEnabled: boolean }> {
+    return apiClient.get('/auth/providers');
+  },
   async registration(request: RegistrationRequestDto): Promise<UserDto> {
     return apiClient.post<UserDto>('/auth/registration', request);
   },

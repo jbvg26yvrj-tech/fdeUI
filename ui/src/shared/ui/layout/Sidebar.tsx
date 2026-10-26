@@ -8,6 +8,7 @@ interface NavigationItem {
   icon: React.ReactNode;
   requiredPermissions?: string[];
   page?: string;
+  adminOnly?: boolean;
 }
 
 interface SidebarProps {
@@ -19,6 +20,8 @@ export const Sidebar = ({ collapsed = false }: SidebarProps) => {
   const navigate = useNavigate();
 
   const navigationItems: NavigationItem[] = [
+    { name: 'О системе', path: '/about', icon: <PipelineIcon /> },
+    { name: 'Настройки', path: '/settings/ldap', adminOnly: true, icon: <PermissionsIcon /> },
     {
       name: 'Пайплайны',
       path: '/pipelines',
@@ -46,20 +49,25 @@ export const Sidebar = ({ collapsed = false }: SidebarProps) => {
     .filter(item => item.page)
     .map(item => item.page as string);
 
-  const { isLoading: isLoadingContext, hasAnyPermission } = useUserContext({
+  const {
+    isLoading: isLoadingContext,
+    hasAnyPermission,
+    roles,
+  } = useUserContext({
     pages: pagesWithPermissions,
     autoLoad: true,
     refreshOnMount: true,
   });
 
   const hasAccess = (item: NavigationItem) => {
+    if (item.adminOnly) return !isLoadingContext && roles.includes('ADMIN');
     if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
       return true;
     }
     if (isLoadingContext) {
       return false;
     }
-    return hasAnyPermission(item.requiredPermissions);
+    return roles.includes('ADMIN') || hasAnyPermission(item.requiredPermissions);
   };
 
   const isActive = (path: string) => {
@@ -68,21 +76,23 @@ export const Sidebar = ({ collapsed = false }: SidebarProps) => {
 
   const renderNavigationItems = () => {
     if (isLoadingContext) {
-      return navigationItems.map(item => (
-        <li key={item.path}>
-          <button
-            disabled
-            className={clsx(
-              'w-full flex items-center rounded-md text-sm font-medium text-gray-400 dark:text-gray-500 opacity-50 cursor-not-allowed',
-              collapsed ? 'justify-center px-2 py-2' : 'justify-start px-3 py-2 space-x-3',
-            )}
-            title={collapsed ? item.name : undefined}
-          >
-            <span className='text-gray-400 dark:text-gray-500'>{item.icon}</span>
-            {!collapsed && <span>{item.name}</span>}
-          </button>
-        </li>
-      ));
+      return navigationItems
+        .filter(item => !item.adminOnly)
+        .map(item => (
+          <li key={item.path}>
+            <button
+              disabled
+              className={clsx(
+                'w-full flex items-center rounded-md text-sm font-medium text-gray-400 dark:text-gray-500 opacity-50 cursor-not-allowed',
+                collapsed ? 'justify-center px-2 py-2' : 'justify-start px-3 py-2 space-x-3',
+              )}
+              title={collapsed ? item.name : undefined}
+            >
+              <span className='text-gray-400 dark:text-gray-500'>{item.icon}</span>
+              {!collapsed && <span>{item.name}</span>}
+            </button>
+          </li>
+        ));
     }
 
     return navigationItems

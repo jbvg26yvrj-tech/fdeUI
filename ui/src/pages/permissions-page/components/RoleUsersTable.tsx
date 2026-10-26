@@ -5,7 +5,7 @@ import Table from '../../../shared/ui/table/Table';
 import { RoleUsersFormModal } from './RoleUsersFormModal';
 import { SYS_TABLE_RESOURCES } from '../../../shared/resources';
 import type { Column } from '../../../shared/ui/table/types/type';
-import type { TableProps } from '../../../shared/types/Types';
+import type { TableProps } from '../../../shared/types/types';
 import { DeleteConfirmationModal } from '../../../shared/components/DeleteConfirmationModal';
 import { TableWithStates } from '../../../shared/ui/table/components/TableStates';
 import { SkeletonTable } from '../../../shared/components/SkeletonTable';

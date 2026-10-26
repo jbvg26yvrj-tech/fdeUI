@@ -85,9 +85,10 @@ public class AuthUserAdapter implements AuthUserPort, UserManagementPort {
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + userId));
 
         if (activated != null) {
-            entity.setActivated(activated);
+            entity.setManualDisabled(!activated);
+            entity.setActivated(activated && !entity.isDirectoryDisabled());
         }
-        if (passwordChangeRequired != null) {
+        if (passwordChangeRequired != null && "LOCAL".equals(entity.getAuthSource())) {
             entity.setPasswordChangeRequired(passwordChangeRequired);
         }
 
@@ -124,7 +125,8 @@ public class AuthUserAdapter implements AuthUserPort, UserManagementPort {
                 entity.getLogin(),
                 entity.getPassword(),
                 entity.isActivated(),
-                entity.isPasswordChangeRequired()
+                entity.isPasswordChangeRequired(),
+                entity.getAuthSource()
         );
     }
 

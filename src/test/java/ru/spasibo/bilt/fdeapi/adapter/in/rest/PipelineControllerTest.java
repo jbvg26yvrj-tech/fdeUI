@@ -71,6 +71,9 @@ class PipelineControllerTest {
     @MockitoBean
     private TokenServiceImpl tokenServiceImpl;
 
+    @MockitoBean
+    private ru.spasibo.bilt.fdeapi.domain.port.AuthUserPort authUserPort;
+
     @MockitoBean(name = "permissionService")
     private PermissionService permissionService;
 

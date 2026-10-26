@@ -30,12 +30,12 @@ public class RoleAdapter implements RolePort {
 
     @Override
     public Optional<RoleData> findByCode(String code) {
-        return Optional.empty();
+        return roleRepository.findByCode(code).map(this::toRoleData);
     }
 
     @Override
     public boolean existsByCode(String code) {
-        return false;
+        return roleRepository.existsByCode(code);
     }
 
 
@@ -150,6 +150,14 @@ public class RoleAdapter implements RolePort {
         return roleRepository.findRoleCodesByUserId(userId);
     }
 
+    @Override
+    public RoleData updateClientCodes(UUID id, Set<String> codes) {
+        RoleEntity entity = roleRepository.findById(id).orElseThrow(() -> new IllegalStateException("Role not found"));
+        entity.setClientCodes(codes.stream().map(code -> code.trim().toUpperCase(java.util.Locale.ROOT))
+                .filter(code -> !code.isEmpty()).collect(java.util.stream.Collectors.toSet()));
+        return toRoleData(roleRepository.save(entity));
+    }
+
     // ---- Маппинг ----
 
     private RoleData toRoleData(RoleEntity entity) {
@@ -159,7 +167,7 @@ public class RoleAdapter implements RolePort {
                 entity.getName(),
                 entity.getDescription(),
                 entity.isSystem(),
-                entity.getCreatedAt()
+                entity.getCreatedAt(), entity.getClientCodes()
         );
     }
 }

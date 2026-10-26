@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from 'react';
+import { parseClientCodes } from '../lib/clientCodes';
 import Table from '../../../shared/ui/table/Table';
 import { Button } from '../../../shared/ui/Button';
 import { Modal } from '../../../shared/ui/Modal';
@@ -12,7 +13,7 @@ import type { RoleDto, CreateRoleRequest } from '../../../features/permissions/t
 import { TableWithStates } from '../../../shared/ui/table/components/TableStates';
 import { SYS_TABLE_RESOURCES } from '../../../shared/resources';
 import type { Column } from '../../../shared/ui/table/types/type';
-import type { TableProps } from '../../../shared/types/Types';
+import type { TableProps } from '../../../shared/types/types';
 import { useTableData } from '../../../shared/ui/table/hooks/useTableData';
 import { DeleteConfirmationModal } from '../../../shared/components/DeleteConfirmationModal';
 import { SkeletonTable } from '../../../shared/components/SkeletonTable';
@@ -63,6 +64,7 @@ export const RolesTable: React.FC<TableProps<RoleDto>> = ({
     description: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [clientCodesText, setClientCodesText] = useState('');
 
   // Состояния для модального окна подтверждения удаления
   const [roleToDelete, setRoleToDelete] = useState<RoleDto | null>(null);
@@ -70,6 +72,7 @@ export const RolesTable: React.FC<TableProps<RoleDto>> = ({
   const [isDeleting, setIsDeleting] = useState(false);
 
   const resetForm = useCallback(() => {
+    setClientCodesText('');
     setFormData({ code: '', name: '', description: '' });
     setEditingRole(null);
   }, []);
@@ -85,6 +88,7 @@ export const RolesTable: React.FC<TableProps<RoleDto>> = ({
         const existingRole = data.find(r => r.id === roleId);
         if (existingRole) {
           setEditingRole(existingRole);
+          setClientCodesText((existingRole.clientCodes || []).join(', '));
           setFormData({
             code: existingRole.code,
             name: existingRole.name,
@@ -95,6 +99,7 @@ export const RolesTable: React.FC<TableProps<RoleDto>> = ({
         }
         const role = await rolesApi.getUserRoleById(roleId);
         setEditingRole(role);
+        setClientCodesText((role.clientCodes || []).join(', '));
         setFormData({
           code: role.code,
           name: role.name,
@@ -148,9 +153,15 @@ export const RolesTable: React.FC<TableProps<RoleDto>> = ({
     setIsSubmitting(true);
     try {
       if (editingRole) {
-        await rolesApi.updateUserRole(editingRole.id, formData);
+        await rolesApi.updateUserRole(editingRole.id, {
+          ...formData,
+          clientCodes: parseClientCodes(clientCodesText),
+        });
       } else {
-        await rolesApi.createUserRole(formData);
+        await rolesApi.createUserRole({
+          ...formData,
+          clientCodes: parseClientCodes(clientCodesText),
+        });
       }
       setIsModalOpen(false);
       resetForm();
@@ -161,7 +172,7 @@ export const RolesTable: React.FC<TableProps<RoleDto>> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [editingRole, formData, loadServerData, resetForm]);
+  }, [editingRole, formData, clientCodesText, loadServerData, resetForm]);
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
@@ -301,6 +312,14 @@ export const RolesTable: React.FC<TableProps<RoleDto>> = ({
         }
       >
         <div className='space-y-4'>
+          <Input
+            label='Доступные клиенты'
+            value={clientCodesText}
+            onChange={event => setClientCodesText(event.target.value)}
+            disabled={isSubmitting}
+            placeholder='DWH, PC'
+            hint='Полные коды через запятую. Пустое поле не даёт доступа к потокам. Права на действия назначаются отдельно.'
+          />
           <Input
             label='Код'
             name='code'

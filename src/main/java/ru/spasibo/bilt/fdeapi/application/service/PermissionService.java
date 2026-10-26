@@ -133,7 +133,7 @@ public class PermissionService implements PermissionPort {
      * @throws AccessDeniedException если у пользователя нет права api.roles.manage
      */
     public void requireAdmin(UserPrincipal principal) {
-        if (!hasPermission(principal.id(), "api.roles.manage")) {
+        if (!getUserRoleCodes(principal.id()).contains("ADMIN")) {
             log.warn("Отказ в административном доступе для пользователя '{}' (id={})", principal.login(), principal.id());
             throw new AccessDeniedException("Admin access required");
         }

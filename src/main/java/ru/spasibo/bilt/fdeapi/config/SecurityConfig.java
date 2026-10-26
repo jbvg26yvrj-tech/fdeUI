@@ -51,6 +51,7 @@ public class SecurityConfig {
                     authz.requestMatchers(
                             "/api/v1/auth/login",
                             "/api/v1/auth/registration",
+                            "/api/v1/auth/providers",
                             "/api/v1/auth/refresh"
                     ).permitAll();
                     // Защищённые эндпоинты аутентификации требуют авторизации

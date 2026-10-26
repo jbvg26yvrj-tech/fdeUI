@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { userContextApi } from '../api/userContextApi';
 import type { UserContextResponse, UserContextRequest } from '../api/userContextApi';
+import { useAuth } from '../../context/AuthContext';
 // ResourceCode import removed - no longer needed after fde-api migration
 
 interface UseUserContextOptions {
@@ -11,15 +12,20 @@ interface UseUserContextOptions {
 
 export const useUserContext = (options: UseUserContextOptions = {}) => {
   const { pages = [], autoLoad = true, refreshOnMount = false } = options;
+  const { user: authenticatedUser } = useAuth();
 
   // Используем useRef для сохранения предыдущих значений
   const optionsRef = useRef(options);
   const pagesRef = useRef(pages);
 
-  const [context, setContext] = useState<UserContextResponse | null>(null);
+  const [loadedContext, setContext] = useState<UserContextResponse | null>(null);
+  const context =
+    authenticatedUser && loadedContext?.user.id === authenticatedUser.id ? loadedContext : null;
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const loadingRef = useRef(false);
+  const requestVersion = useRef(0);
 
   // Проверяем, изменились ли опции
   const hasOptionsChanged =
@@ -32,34 +38,38 @@ export const useUserContext = (options: UseUserContextOptions = {}) => {
     pagesRef.current = pages;
   }
 
-  const loadContext = useCallback(
-    async (forceRefresh = false) => {
-      if (isLoading && !forceRefresh) {
-        return;
-      } // Предотвращаем повторную загрузку
+  const loadContext = useCallback(async (forceRefresh = false) => {
+    if (loadingRef.current) {
+      return;
+    } // Предотвращаем повторную загрузку
 
-      setIsLoading(true);
-      setError(null);
+    setIsLoading(true);
+    const version = ++requestVersion.current;
+    loadingRef.current = true;
+    setError(null);
 
-      try {
-        const request: UserContextRequest = {};
+    try {
+      const request: UserContextRequest = {};
 
-        const data = forceRefresh
-          ? await userContextApi.refreshContext(request)
-          : await userContextApi.getUserContext(request);
+      const data = forceRefresh
+        ? await userContextApi.refreshContext(request)
+        : await userContextApi.getUserContext(request);
 
-        setContext(data);
-        setLastUpdated(new Date());
-        console.log('[useUserContext] Контекст загружен:', data);
-      } catch (err) {
-        console.error('[useUserContext] Ошибка загрузки контекста:', err);
-        setError(err instanceof Error ? err : new Error('Failed to load user context'));
-      } finally {
+      if (version !== requestVersion.current) return;
+      setContext(data);
+      setLastUpdated(new Date());
+      console.log('[useUserContext] Контекст загружен:', data);
+    } catch (err) {
+      if (version !== requestVersion.current) return;
+      console.error('[useUserContext] Ошибка загрузки контекста:', err);
+      setError(err instanceof Error ? err : new Error('Failed to load user context'));
+    } finally {
+      if (version === requestVersion.current) {
+        loadingRef.current = false;
         setIsLoading(false);
       }
-    },
-    [isLoading], // Зависимость только от isLoading
-  );
+    }
+  }, []);
 
   const clearContext = useCallback(() => {
     userContextApi.clearCache();
@@ -138,6 +148,9 @@ export const useUserContext = (options: UseUserContextOptions = {}) => {
   // Загрузка при монтировании
   useEffect(() => {
     let isMounted = true;
+    requestVersion.current += 1;
+    loadingRef.current = false;
+    setContext(null);
 
     const loadData = async () => {
       if (autoLoad && isMounted) {
@@ -149,8 +162,9 @@ export const useUserContext = (options: UseUserContextOptions = {}) => {
 
     return () => {
       isMounted = false;
+      requestVersion.current += 1;
     };
-  }, [autoLoad, refreshOnMount]); // Убрали loadContext из зависимостей
+  }, [autoLoad, refreshOnMount, authenticatedUser?.id]);
 
   return {
     // Состояние

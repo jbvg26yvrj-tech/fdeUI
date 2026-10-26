@@ -15,6 +15,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class LoginRequest {
 
+    public enum Provider { LOCAL, LDAP }
+    @Builder.Default
+    private Provider provider = Provider.LOCAL;
+
+    public LoginRequest(String login, String password) { this.login = login; this.password = password; }
+
     @NotBlank(message = "Login is required")
     private String login;
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useId } from 'react';
 import clsx from 'clsx';
 
 export type InputSize = 'sm' | 'md' | 'lg';
@@ -32,8 +32,7 @@ export const InputMessage: React.FC<{ message?: string; isError?: boolean }> = (
 };
 
 export interface InputProps
-  extends BaseInputProps,
-    Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
+  extends BaseInputProps, Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'> {
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
 }
@@ -50,6 +49,8 @@ export const Input: React.FC<InputProps> = ({
   className,
   ...props
 }) => {
+  const generatedId = useId();
+  const inputId = props.id || generatedId;
   const sizeClasses: Record<InputSize, string> = {
     sm: 'py-1 px-3 text-sm',
     md: 'py-2 px-4 text-base',
@@ -85,7 +86,10 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className='w-full'>
       {label && (
-        <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+        <label
+          htmlFor={inputId}
+          className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'
+        >
           {label}
         </label>
       )}
@@ -95,7 +99,7 @@ export const Input: React.FC<InputProps> = ({
             {icon}
           </div>
         )}
-        <input className={inputClasses} disabled={disabled} {...props} />
+        <input className={inputClasses} disabled={disabled} {...props} id={inputId} />
         {icon && iconPosition === 'right' && (
           <div className='absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-gray-400 dark:text-gray-500'>
             {icon}
@@ -120,12 +124,17 @@ export const PasswordInput: React.FC<
   ...props
 }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const generatedId = useId();
+  const inputId = props.id || generatedId;
   const currentVariant = error ? 'error' : variant;
 
   return (
     <div className='w-full'>
       {label && (
-        <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+        <label
+          htmlFor={inputId}
+          className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'
+        >
           {label}
         </label>
       )}
@@ -137,6 +146,7 @@ export const PasswordInput: React.FC<
           disabled={disabled}
           className={clsx('pr-10', className)}
           {...props}
+          id={inputId}
         />
         <button
           type='button'
@@ -147,6 +157,8 @@ export const PasswordInput: React.FC<
               : 'text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300',
           )}
           onClick={() => setShowPassword(!showPassword)}
+          aria-label={showPassword ? 'Скрыть пароль' : 'Показать пароль'}
+          aria-pressed={showPassword}
           disabled={disabled}
         >
           {showPassword ? <EyeOffIcon className='h-5 w-5' /> : <EyeIcon className='h-5 w-5' />}

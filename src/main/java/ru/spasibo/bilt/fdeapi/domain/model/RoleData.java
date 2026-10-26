@@ -12,6 +12,11 @@ public record RoleData(
         String name,
         String description,
         boolean isSystem,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        java.util.Set<String> clientCodes
 ) {
+    public RoleData(UUID id, String code, String name, String description, boolean isSystem, LocalDateTime createdAt) {
+        this(id, code, name, description, isSystem, createdAt, java.util.Set.of());
+    }
+    public RoleData { clientCodes = clientCodes == null ? java.util.Set.of() : java.util.Set.copyOf(clientCodes); }
 }

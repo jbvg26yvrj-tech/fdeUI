@@ -43,6 +43,9 @@ class GlobalExceptionHandlerTest {
     @MockitoBean
     private TokenServiceImpl tokenServiceImpl;
 
+    @MockitoBean
+    private ru.spasibo.bilt.fdeapi.domain.port.AuthUserPort authUserPort;
+
     @MockitoBean(name = "permissionService")
     private ru.spasibo.bilt.fdeapi.application.service.PermissionService permissionService;
 

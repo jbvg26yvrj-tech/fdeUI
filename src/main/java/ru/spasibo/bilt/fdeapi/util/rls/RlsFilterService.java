@@ -31,7 +31,7 @@ public class RlsFilterService {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication == null || !(authentication.getPrincipal() instanceof UserPrincipalDetails)) {
                 log.warn("Principal не найден или не является UserPrincipalDetails");
-                return Optional.empty();
+                throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("RLS unavailable");
             }
 
             UserPrincipalDetails details = (UserPrincipalDetails) authentication.getPrincipal();
@@ -40,7 +40,7 @@ public class RlsFilterService {
             return Optional.ofNullable(userFilters.get(resourceCode));
         } catch (Exception e) {
             log.error("Ошибка получения RLS фильтра для ресурса {}: {}", resourceCode, e.getMessage());
-            return Optional.empty();
+            throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("RLS unavailable");
         }
     }
 
@@ -58,16 +58,17 @@ public class RlsFilterService {
             }
             // Сериализуем фильтр в строку, заменяем переменные, десериализуем обратно
             String json = objectMapper.writeValueAsString(filterOpt.get());
-            json = json.replace("${login}", login);
+            String escapedLogin = objectMapper.writeValueAsString(login);
+            json = json.replace("${login}", escapedLogin.substring(1, escapedLogin.length() - 1));
             JsonNode filterCopy = objectMapper.readTree(json);
             if (!validateRlsFilterStructure(filterCopy)) {
                 log.warn("Некорректная структура RLS фильтра для ресурса {} после подстановки", resourceCode);
-                return Optional.empty();
+                throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS filter");
             }
             return Optional.of(filterCopy);
         } catch (Exception e) {
             log.error("Ошибка получения разрешенного RLS фильтра для ресурса {}: {}", resourceCode, e.getMessage());
-            return Optional.empty();
+            throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("RLS unavailable");
         }
     }
 
@@ -107,6 +108,11 @@ public class RlsFilterService {
     // === Приватные вспомогательные методы ===
 
     private boolean validateRlsFilterStructure(JsonNode filter) {
+        if (filter != null && filter.has("allOf")) {
+            if (!filter.get("allOf").isArray() || filter.get("allOf").isEmpty()) return false;
+            for (JsonNode child : filter.get("allOf")) if (!validateRlsFilterStructure(child)) return false;
+            return true;
+        }
         if (filter == null || filter.isNull()) {
             return true;
         }

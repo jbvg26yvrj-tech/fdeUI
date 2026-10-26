@@ -19,4 +19,5 @@ public class UpdateRoleRequest {
     private String name;
 
     private String description;
+    private java.util.Set<@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 255) String> clientCodes;
 }

@@ -9,7 +9,7 @@ import {
 import type { RoleRlsDto, ResourceDto, RlsFilter } from '../../../features/permissions/types/types';
 import { SYS_TABLE_RESOURCES } from '../../../shared/resources';
 import type { Column } from '../../../shared/ui/table/types/type';
-import type { TableProps } from '../../../shared/types/Types';
+import type { TableProps } from '../../../shared/types/types';
 import { RlsFilterModal } from '../../../features/permissions/components/RlsFilterModal';
 import { TableWithStates } from '../../../shared/ui/table/components/TableStates';
 import { SkeletonTable } from '../../../shared/components/SkeletonTable';

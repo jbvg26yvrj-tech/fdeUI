@@ -60,6 +60,7 @@ public class PipelineService {
     );
 
     private final PipelineRepository pipelineRepository;
+    private final AccessScopeService accessScopeService;
     private final ApiMetrics apiMetrics;
     private final RlsFilterService rlsFilterService;
     private final RlsSpecificationBuilder rlsSpecificationBuilder;
@@ -72,6 +73,7 @@ public class PipelineService {
      */
     @Transactional
     public PipelineResponse create(CreatePipelineRequest request) {
+        accessScopeService.requireParticipants(request.getClientFrom(), request.getClientTo());
         validateTasks(request.getTasks());
 
         PipelineEntity entity = PipelineEntity.builder()
@@ -92,7 +94,9 @@ public class PipelineService {
             entity.addTask(taskEntity);
         }
 
+        accessScopeService.requireParticipants(entity.getClientFrom(), entity.getClientTo());
         PipelineEntity saved = saveWithUniqueNameCheck(entity);
+        accessScopeService.requireSavedPipeline(saved.getId());
         apiMetrics.incrementPipelineCreated();
         log.info("Создан пайплайн: id={}, имя='{}'", saved.getId(), saved.getPipelineName());
 
@@ -127,22 +131,7 @@ public class PipelineService {
         String login = SecurityContextHolder.getContext().getAuthentication().getName();
         log.debug("Текущий пользователь: {}", login);
 
-        Specification<PipelineEntity> spec = Specification.allOf();
-
-        // Получаем RLS фильтр и применяем его через билдер
-        Optional<JsonNode> rlsFilterOpt = rlsFilterService.getResolvedFilterForResource(
-                ResourceDefinition.TABLE_PIPELINES.getCode(), login);
-
-        if (rlsFilterOpt.isPresent()) {
-            JsonNode rlsFilter = rlsFilterOpt.get();
-            log.debug("RLS-фильтр найден и разрешён: {}", rlsFilter.toString());
-
-            Specification<PipelineEntity> rlsSpec = rlsSpecificationBuilder.buildSpecificationFromFilter(
-                    rlsFilter, PipelineEntity.class);
-            spec = spec.and(rlsSpec);
-        } else {
-            log.debug("RLS-фильтр не найден для ресурса {}", ResourceDefinition.TABLE_PIPELINES.getCode());
-        }
+        Specification<PipelineEntity> spec = accessScopeService.pipelines();
 
         Sort sortOrder = PaginationUtils.parseSort(sort, ALLOWED_SORT_FIELDS);
         PageRequest pageRequest = PageRequest.of(page, size, sortOrder);
@@ -184,6 +173,7 @@ public class PipelineService {
      */
     @Transactional(readOnly = true)
     public PipelineResponse getById(UUID id) {
+        accessScopeService.requirePipeline(id);
         PipelineEntity entity = pipelineRepository.findById(id)
                 .orElseThrow(() -> new PipelineNotFoundException(id));
         return toResponse(entity);
@@ -199,6 +189,7 @@ public class PipelineService {
      */
     @Transactional
     public PipelineResponse update(UUID id, UpdatePipelineRequest request) {
+        accessScopeService.requirePipeline(id);
         PipelineEntity entity = pipelineRepository.findById(id)
                 .orElseThrow(() -> new PipelineNotFoundException(id));
 
@@ -248,7 +239,9 @@ public class PipelineService {
             }
         }
 
+        accessScopeService.requireParticipants(entity.getClientFrom(), entity.getClientTo());
         PipelineEntity saved = saveWithUniqueNameCheck(entity);
+        accessScopeService.requireSavedPipeline(saved.getId());
         log.info("Обновлён пайплайн: id={}", saved.getId());
 
         return toResponse(saved);
@@ -261,6 +254,7 @@ public class PipelineService {
      */
     @Transactional
     public void delete(UUID id) {
+        accessScopeService.requirePipeline(id);
         if (!pipelineRepository.existsById(id)) {
             throw new PipelineNotFoundException(id);
         }
@@ -283,6 +277,7 @@ public class PipelineService {
                     "Invalid datacenter: '" + dc + "'. Allowed: SC, SP");
         }
 
+        request.getPipelineIds().forEach(accessScopeService::requirePipeline);
         int updatedCount = 0;
         if (!request.getPipelineIds().isEmpty()) {
             updatedCount = pipelineRepository.bulkUpdateDatacenter(dc, request.getPipelineIds());

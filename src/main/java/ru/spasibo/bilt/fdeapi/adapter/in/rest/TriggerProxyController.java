@@ -32,7 +32,9 @@ public class TriggerProxyController {
 
     private final DispatcherPort dispatcherPort;
     private final PipelineRepository pipelineRepository;
+    private final ru.spasibo.bilt.fdeapi.application.service.SessionService sessionService;
     private final ObjectMapper objectMapper;
+    private final ru.spasibo.bilt.fdeapi.application.service.AccessScopeService accessScopeService;
 
     @PostMapping(value = "/manual", consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("@permissionService.currentUserHasPermission('api.triggers.manual')")
@@ -52,6 +54,11 @@ public class TriggerProxyController {
     @Operation(summary = "Остановка выполнения",
             description = "Проксирует запрос остановки в dispatcher без предварительной проверки")
     public ResponseEntity<String> stopTrigger(@RequestBody String body) {
+        try {
+            JsonNode node = objectMapper.readTree(body);
+            if (!node.hasNonNull("sessionId")) throw new IllegalArgumentException("sessionId is required");
+            sessionService.getById(UUID.fromString(node.get("sessionId").asText()));
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) { throw new IllegalArgumentException("Invalid request body"); }
         log.info("Запрос на остановку выполнения пайплайна");
 
         return dispatcherPort.proxyPost(DISPATCHER_TRIGGERS_PATH + "/stop", body);
@@ -76,8 +83,6 @@ public class TriggerProxyController {
     }
 
     private void validatePipelineExists(UUID pipelineId) {
-        if (!pipelineRepository.existsById(pipelineId)) {
-            throw new PipelineNotFoundException(pipelineId);
-        }
+        accessScopeService.requirePipeline(pipelineId);
     }
 }

@@ -1,0 +1,11 @@
+.git
+ui/node_modules
+ui/dist
+ssl
+.env
+**/.env
+**/.env.*
+**/.DS_Store
+**/__pycache__
+logs
+release-patch.json

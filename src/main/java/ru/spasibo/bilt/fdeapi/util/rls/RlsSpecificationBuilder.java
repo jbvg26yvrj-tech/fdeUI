@@ -31,13 +31,11 @@ public class RlsSpecificationBuilder {
         return (root, query, cb) -> {
             if (filter == null || filter.isNull() || !validateRlsFilterStructure(filter)) {
                 log.warn("Фильтр отсутствует или некорректен, возвращаем пустой предикат");
-                return cb.conjunction();
+                return cb.disjunction();
             }
 
             // Устанавливаем DISTINCT для запросов с JOIN
-            if (query.getResultType() != Long.class && query.getResultType() != long.class) {
-                query.distinct(true);
-            }
+            query.distinct(true);
 
             return buildPredicateWithJoins(filter, root, query, cb, entityClass);
         };
@@ -61,13 +59,11 @@ public class RlsSpecificationBuilder {
                     return cb.conjunction();
                 }
                 JsonNode filter = filterOpt.get();
-                if (query.getResultType() != Long.class && query.getResultType() != long.class) {
-                    query.distinct(true);
-                }
+                query.distinct(true);
                 return buildPredicateWithJoins(filter, root, query, cb, entityClass);
             } catch (Exception e) {
                 log.error("Ошибка построения спецификации: {}", e.getMessage(), e);
-                return cb.conjunction();
+                return cb.disjunction();
             }
         };
     }
@@ -76,6 +72,11 @@ public class RlsSpecificationBuilder {
      */
     private <T> Predicate buildPredicateWithJoins(JsonNode filter, Root<T> root, CriteriaQuery<?> query,
                                                   CriteriaBuilder cb, Class<T> entityClass) {
+        if (filter.has("allOf")) {
+            List<Predicate> restrictions = new ArrayList<>();
+            for (JsonNode child : filter.get("allOf")) restrictions.add(buildPredicateWithJoins(child, root, query, cb, entityClass));
+            return cb.and(restrictions.toArray(new Predicate[0]));
+        }
         Map<String, Join> joinsCache = new HashMap<>();
         List<Predicate> predicates = new ArrayList<>();
 
@@ -99,14 +100,14 @@ public class RlsSpecificationBuilder {
                         log.debug("Успешно создан предикат для условия: {}", condition);
                     }
                 } catch (Exception e) {
-                    log.warn("Ошибка обработки условия RLS: {}, ошибка: {}", condition, e.getMessage());
+                    throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS condition");
                 }
             }
         }
 
         if (predicates.isEmpty()) {
             log.warn("Не удалось создать ни одного предиката из условий RLS");
-            return cb.conjunction();
+            return cb.disjunction();
         }
 
         String logicalOperator = filter.has("logicalOperator")
@@ -168,7 +169,7 @@ public class RlsSpecificationBuilder {
             log.debug("Создан JOIN {} для ассоциации {}", alias, associationPath);
 
         } catch (Exception e) {
-            log.error("Ошибка обработки JOIN узла: {}", e.getMessage(), e);
+            throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS join");
         }
     }
 
@@ -245,7 +246,7 @@ public class RlsSpecificationBuilder {
 
             if (fieldPath == null) {
                 log.warn("Не удалось разрешить путь поля: {}", field);
-                return null;
+                throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS restriction");
             }
 
             // Получаем тип поля
@@ -261,7 +262,7 @@ public class RlsSpecificationBuilder {
 
         } catch (Exception e) {
             log.error("Ошибка создания предиката для условия {}: {}", condition, e.getMessage(), e);
-            return null;
+            throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS restriction");
         }
     }
 
@@ -289,7 +290,7 @@ public class RlsSpecificationBuilder {
             }
         } catch (Exception e) {
             log.error("Ошибка разрешения пути поля {}: {}", fieldPath, e.getMessage());
-            return null;
+            throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS restriction");
         }
     }
 
@@ -310,7 +311,7 @@ public class RlsSpecificationBuilder {
     private Predicate createPredicate(Path path, String operator, Object value, CriteriaBuilder cb) {
         if (value == null && !"isnull".equals(operator) && !"isnotnull".equals(operator)) {
             log.warn("Значение null для оператора, требующего значения: {}", operator);
-            return null;
+            throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS restriction");
         }
 
         switch (operator) {
@@ -382,7 +383,7 @@ public class RlsSpecificationBuilder {
                 log.warn("Неизвестный оператор: {}", operator);
         }
 
-        return null;
+        throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS restriction");
     }
 
     /**
@@ -421,7 +422,7 @@ public class RlsSpecificationBuilder {
             log.error("Ошибка парсинга значения {} к типу {}: {}", valueNode, fieldType, e.getMessage());
         }
 
-        return null;
+        throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS restriction");
     }
 
     /**
@@ -447,6 +448,7 @@ public class RlsSpecificationBuilder {
             }
         } catch (Exception e) {
             log.error("Ошибка преобразования значения {} к типу {}: {}", value, fieldType, e.getMessage());
+            throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS value");
         }
         log.warn("Не удалось конвертировать значение '{}' в тип {}, возвращаем как строку", value, fieldType);
         return value;
@@ -476,6 +478,11 @@ public class RlsSpecificationBuilder {
 
     // Вспомогательная валидация структуры фильтра (уже была)
     private boolean validateRlsFilterStructure(JsonNode filter) {
+        if (filter != null && filter.has("allOf")) {
+            if (!filter.get("allOf").isArray() || filter.get("allOf").isEmpty()) return false;
+            for (JsonNode child : filter.get("allOf")) if (!validateRlsFilterStructure(child)) return false;
+            return true;
+        }
         if (filter == null || filter.isNull()) {
             return true;
         }

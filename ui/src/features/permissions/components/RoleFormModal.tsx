@@ -1,4 +1,5 @@
 import React from 'react';
+import { parseClientCodes } from '../lib/clientCodes';
 import { FormModal, type FormField } from '../../../shared/components/FormModal';
 import type { RoleDto, CreateRoleRequest, UpdateRoleRequest } from '../types/types';
 
@@ -20,6 +21,13 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
   isLoading = false,
 }) => {
   const fields: FormField[] = [
+    {
+      name: 'clientCodes',
+      label: 'Доступные клиенты',
+      type: 'text',
+      disabled: mode === 'view',
+      placeholder: 'DWH, PC — пустое поле не даёт доступа к потокам',
+    },
     {
       name: 'code',
       label: 'Код',
@@ -49,6 +57,7 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
     if (role && (mode === 'view' || mode === 'edit')) {
       return {
         code: role.code,
+        clientCodes: (role.clientCodes || []).join(', '),
         name: role.name,
         description: role.description || '',
       };
@@ -56,6 +65,7 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
     // Для создания
     return {
       code: '',
+      clientCodes: '',
       name: '',
       description: '',
     };
@@ -78,7 +88,14 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
     <FormModal
       isOpen={isOpen}
       onClose={onClose}
-      onSave={onSave}
+      onSave={values =>
+        onSave({
+          code: values.code,
+          name: values.name,
+          description: values.description,
+          clientCodes: parseClientCodes(values.clientCodes || ''),
+        })
+      }
       title={getTitle()}
       fields={fields}
       initialValues={getInitialValues()}

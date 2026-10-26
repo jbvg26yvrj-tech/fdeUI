@@ -62,15 +62,19 @@ public class RlsAdapter implements RlsPort {
 
                 JsonNode existing = null;
                 try {
-                    existing = filters.putIfAbsent(resourceCode, objectMapper.readTree(entity.getFilter()));
+                    JsonNode next = objectMapper.readTree(entity.getFilter());
+                    if (next == null || next.isNull()) throw new IllegalStateException("Missing RLS filter");
+                    existing = filters.putIfAbsent(resourceCode, next);
+                    if (existing != null) {
+                        var combined = objectMapper.createObjectNode();
+                        combined.putArray("allOf").add(existing).add(next);
+                        filters.put(resourceCode, combined);
+                    }
                 } catch (JsonProcessingException e) {
                     throw new RuntimeException(e);
                 }
-                if (existing != null) {
-                    log.warn("Конфликт RLS-фильтров для ресурса '{}': у роли {} уже есть фильтр, "
-                                    + "фильтр от роли {} игнорируется",
-                            resourceCode, entity.getRoleId(), entity.getRoleId());
-                }
+            } else {
+                throw new IllegalStateException("RLS resource unavailable");
             }
         }
 

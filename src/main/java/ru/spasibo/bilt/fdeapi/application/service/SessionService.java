@@ -52,6 +52,7 @@ public class SessionService {
     );
 
     private final SessionRepository sessionRepository;
+    private final AccessScopeService accessScopeService;
     private final PipelineRepository pipelineRepository;
     private final RlsFilterService rlsFilterService;
     private final RlsSpecificationBuilder rlsSpecificationBuilder;
@@ -81,20 +82,7 @@ public class SessionService {
         String login = SecurityContextHolder.getContext().getAuthentication().getName();
         log.debug("Текущий пользователь: {}", login);
 
-        Specification<PipelineSessionEntity> spec = Specification.allOf();
-
-        // Применяем RLS фильтр, если он существует для ресурса сессий
-        Optional<JsonNode> rlsFilterOpt = rlsFilterService.getResolvedFilterForResource(
-                ResourceDefinition.TABLE_SESSIONS.getCode(), login);
-        if (rlsFilterOpt.isPresent()) {
-            JsonNode rlsFilter = rlsFilterOpt.get();
-            log.debug("RLS-фильтр для сессий найден: {}", rlsFilter);
-            Specification<PipelineSessionEntity> rlsSpec = rlsSpecificationBuilder.buildSpecificationFromFilter(
-                    rlsFilter, PipelineSessionEntity.class);
-            spec = spec.and(rlsSpec);
-        } else {
-            log.debug("RLS-фильтр для ресурса {} не найден", ResourceDefinition.TABLE_SESSIONS.getCode());
-        }
+        Specification<PipelineSessionEntity> spec = accessScopeService.sessions();
 
         // Валидация статуса
         if (status != null && !status.isBlank()) {
@@ -140,14 +128,7 @@ public class SessionService {
      */
     @Transactional(readOnly = true)
     public SessionResponse getById(UUID sessionId) {
-        // Применяем RLS при загрузке конкретной сущности (опционально, но для безопасности)
-        String login = SecurityContextHolder.getContext().getAuthentication().getName();
-        Optional<JsonNode> rlsFilterOpt = rlsFilterService.getResolvedFilterForResource(
-                ResourceDefinition.TABLE_SESSIONS.getCode(), login);
-        Specification<PipelineSessionEntity> rlsSpec = Specification.allOf();
-        if (rlsFilterOpt.isPresent()) {
-            rlsSpec = rlsSpecificationBuilder.buildSpecificationFromFilter(rlsFilterOpt.get(), PipelineSessionEntity.class);
-        }
+        Specification<PipelineSessionEntity> rlsSpec = accessScopeService.sessions();
 
         PipelineSessionEntity entity = sessionRepository.findOne(rlsSpec.and(SessionSpecifications.idEquals(sessionId)))
                 .orElseThrow(() -> new SessionNotFoundException(sessionId));

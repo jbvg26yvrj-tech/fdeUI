@@ -11,6 +11,7 @@ import java.util.UUID;
  * Абстрагирует слой адаптеров, чтобы сервисы приложения не зависели от JPA-сущностей.
  */
 public interface RolePort {
+    RoleData updateClientCodes(UUID id, java.util.Set<String> codes);
 
     /**
      * Находит роль по идентификатору.

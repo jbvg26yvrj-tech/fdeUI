@@ -55,6 +55,16 @@ class AuthServiceTest {
         return new AuthUserData(USER_ID, LOGIN, HASHED_PASSWORD, activated, passwordChangeRequired);
     }
 
+    @Test
+    void refreshRejectsDeactivatedUserDespiteValidTokens() {
+        when(tokenPort.validateRefreshToken("refresh")).thenReturn(true);
+        when(tokenPort.atomicReplaceRefreshToken(USER_ID, "refresh")).thenReturn(true);
+        when(authUserPort.findById(USER_ID)).thenReturn(Optional.of(createUser(false, false)));
+        assertThatThrownBy(() -> authService.refresh(new UserPrincipal(USER_ID, LOGIN, true, false), "refresh"))
+                .isInstanceOf(AccountNotActivatedException.class);
+        verify(tokenPort, never()).generateTokenPair(any());
+    }
+
     @Nested
     @DisplayName("login()")
     class LoginTests {

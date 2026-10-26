@@ -11,6 +11,10 @@ public record AuthUserData(
         String login,
         String passwordHash,
         boolean activated,
-        boolean passwordChangeRequired
+        boolean passwordChangeRequired,
+        String authSource
 ) {
+    public AuthUserData(UUID id, String login, String passwordHash, boolean activated, boolean passwordChangeRequired) {
+        this(id, login, passwordHash, activated, passwordChangeRequired, "LOCAL");
+    }
 }

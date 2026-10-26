@@ -23,4 +23,5 @@ public class RoleResponse {
     private String description;
     private boolean isSystem;
     private LocalDateTime createdAt;
+    private java.util.Set<@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 255) String> clientCodes;
 }

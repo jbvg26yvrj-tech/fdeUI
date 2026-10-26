@@ -16,6 +16,9 @@ import { AuthProvider, useAuth } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import { Layout } from '../shared/ui/layout/Layout';
 import { useAuthInitialization } from '../shared/hooks/useAuthInitialization';
+import { AccessRoute } from '../shared/components/AccessRoute';
+const AboutPage = lazy(() => import('../pages/about-page'));
+const LdapSettingsPage = lazy(() => import('../pages/settings-page/LdapSettingsPage'));
 
 const PageLoader = () => (
   <div className='flex justify-center items-center p-12'>
@@ -35,17 +38,18 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (
+    user?.authSource !== 'LDAP' &&
     (user?.passwordChangeRequired || sessionStorage.getItem('requiresPasswordChange') === 'true') &&
     window.location.pathname !== '/change-password'
   ) {
     return <Navigate to='/change-password' replace />;
   }
 
-  return <>{children}</>;
+  return <AccessRoute>{children}</AccessRoute>;
 };
 
 const PasswordChangeRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
   if (isLoading) {
     return (
@@ -55,7 +59,15 @@ const PasswordChangeRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  return isAuthenticated ? <>{children}</> : <Navigate to='/login' replace />;
+  return isAuthenticated ? (
+    user?.authSource === 'LDAP' ? (
+      <Navigate to='/about' replace />
+    ) : (
+      <>{children}</>
+    )
+  ) : (
+    <Navigate to='/login' replace />
+  );
 };
 
 const PublicRoute = ({ children }: { children: React.ReactNode }) => {
@@ -69,8 +81,20 @@ const PublicRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  return !isAuthenticated ? <>{children}</> : <Navigate to='/pipelines' replace />;
+  return !isAuthenticated ? <>{children}</> : <Navigate to='/' replace />;
 };
+
+function LandingRoute() {
+  const { isAuthenticated, isLoading, user } = useAuth();
+  if (isLoading) return <PageLoader />;
+  if (!isAuthenticated) return <Navigate to='/login' replace />;
+  if (
+    user?.authSource !== 'LDAP' &&
+    (user?.passwordChangeRequired || sessionStorage.getItem('requiresPasswordChange') === 'true')
+  )
+    return <Navigate to='/change-password' replace />;
+  return <AccessRoute landing />;
+}
 
 function AppContent() {
   useAuthInitialization();
@@ -172,7 +196,27 @@ function AppContent() {
           }
         />
 
-        <Route path='/' element={<Navigate to='/pipelines' replace />} />
+        <Route
+          path='/about'
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={<PageLoader />}>
+                <AboutPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path='/settings/ldap'
+          element={
+            <ProtectedRoute>
+              <Suspense fallback={<PageLoader />}>
+                <LdapSettingsPage />
+              </Suspense>
+            </ProtectedRoute>
+          }
+        />
+        <Route path='/' element={<LandingRoute />} />
         <Route
           path='*'
           element={

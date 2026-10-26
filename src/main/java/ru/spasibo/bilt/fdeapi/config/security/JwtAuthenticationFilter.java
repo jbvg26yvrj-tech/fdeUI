@@ -36,6 +36,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private static final Set<String> PUBLIC_AUTH_PATHS = Set.of(
             "/api/v1/auth/login",
             "/api/v1/auth/registration",
+            "/api/v1/auth/providers",
             "/api/v1/auth/refresh"
     );
 
@@ -43,6 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     public static final String AUTH_ERROR_ATTRIBUTE = "auth.error";
 
     private final TokenPort tokenService;
+    private final ru.spasibo.bilt.fdeapi.domain.port.AuthUserPort users;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -58,7 +60,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     if (tokenService.validateAccessToken(token)) {
                         UserPrincipal principal = tokenService.extractUserFromAccessToken(token);
 
-                        if (principal != null) {
+                        var currentUser = principal == null ? null : users.findById(principal.id()).orElse(null);
+                        if (currentUser != null && currentUser.activated()) {
+                            principal = new UserPrincipal(currentUser.id(), currentUser.login(), true, currentUser.passwordChangeRequired());
                             UserPrincipalDetails details = new UserPrincipalDetails(principal);
                             UsernamePasswordAuthenticationToken authentication =
                                     new UsernamePasswordAuthenticationToken(

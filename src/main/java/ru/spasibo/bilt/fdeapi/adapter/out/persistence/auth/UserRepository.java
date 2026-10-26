@@ -21,5 +21,10 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID>,
 
     boolean existsByLogin(String login);
 
+    Optional<UserEntity> findByLoginIgnoreCase(String login);
+    Optional<UserEntity> findByAuthSourceAndExternalId(String authSource, String externalId);
+    boolean existsByAuthSource(String authSource);
+    org.springframework.data.domain.Page<UserEntity> findByAuthSource(String authSource, org.springframework.data.domain.Pageable pageable);
+
 
 }

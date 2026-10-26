@@ -10,7 +10,7 @@ const ChangePasswordPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, login } = useAuth();
 
   useEffect(() => {
     const requiresPasswordChange =
@@ -18,7 +18,7 @@ const ChangePasswordPage = () => {
       sessionStorage.getItem('requiresPasswordChange') === 'true';
 
     if (!requiresPasswordChange) {
-      navigate('/pipelines');
+      navigate('/');
     }
   }, [currentUser, navigate]);
 
@@ -30,16 +30,12 @@ const ChangePasswordPage = () => {
     try {
       await authApi.changePassword(data);
       sessionStorage.removeItem('requiresPasswordChange');
+      const token = sessionStorage.getItem('accessToken');
+      if (currentUser && token) login({ ...currentUser, passwordChangeRequired: false }, token);
       setSuccess(true);
 
       setTimeout(() => {
-        const pendingPipelineId = sessionStorage.getItem('pendingPipelineId');
-        if (pendingPipelineId) {
-          navigate(`/pipelines/${pendingPipelineId}`);
-          sessionStorage.removeItem('pendingPipelineId');
-        } else {
-          navigate('/pipelines');
-        }
+        navigate('/');
       }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Password change failed');
@@ -88,7 +84,7 @@ const ChangePasswordPage = () => {
 
       {success && (
         <div className='max-w-md mx-auto mb-6 p-4 bg-green-100 dark:bg-green-900/20 border border-green-400 dark:border-green-700 text-green-700 dark:text-green-400 rounded'>
-          Пароль успешно изменен! Перенаправляем на страницу пайплайнов...
+          Пароль успешно изменён. Открываем доступную страницу…
         </div>
       )}
 

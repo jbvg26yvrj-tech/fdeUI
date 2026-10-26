@@ -8,7 +8,7 @@ import type { ResourceDto } from '../../../features/permissions/types/types';
 import { TableWithStates } from '../../../shared/ui/table/components/TableStates';
 import { SYS_TABLE_RESOURCES } from '../../../shared/resources';
 import type { Column } from '../../../shared/ui/table/types/type';
-import type { TableProps } from '../../../shared/types/Types';
+import type { TableProps } from '../../../shared/types/types';
 import { useTableData } from '../../../shared/ui/table/hooks/useTableData';
 import { SkeletonTable } from '../../../shared/components/SkeletonTable';
 

@@ -51,3 +51,7 @@ ui/dist/
 src/main/resources/static/
 ### Local certificate keystore ###
 ssl/*.p12
+
+### Python verification artifacts ###
+__pycache__/
+*.pyc

@@ -90,7 +90,7 @@ public class AuthService {
             throw new AuthenticationException("Неверный логин или пароль");
         }
 
-        if (!passwordEncoder.matches(password, user.passwordHash())) {
+        if (!"LOCAL".equals(user.authSource()) || !passwordEncoder.matches(password, user.passwordHash())) {
             log.warn("Неуспешный вход: неверный пароль для пользователя '{}'", login);
             throw new AuthenticationException("Неверный логин или пароль");
         }
@@ -132,6 +132,10 @@ public class AuthService {
         AuthUserData user = authUserPort.findById(principal.id())
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
+        if (!user.activated()) {
+            throw new AccountNotActivatedException("Аккаунт не активирован. Обратитесь к администратору");
+        }
+
         UserPrincipal freshPrincipal = toUserPrincipal(user);
         TokenPair newTokenPair = tokenPort.generateTokenPair(freshPrincipal);
         tokenPort.saveRefreshToken(user.id(), newTokenPair.refreshToken());
@@ -154,6 +158,10 @@ public class AuthService {
                                String newPassword, String confirmNew) {
         AuthUserData user = authUserPort.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (!"LOCAL".equals(user.authSource())) {
+            throw new ValidationException("Доменный пароль изменяется в каталоге организации");
+        }
 
         if (!passwordEncoder.matches(currentPassword, user.passwordHash())) {
             throw new AuthenticationException("Current password is incorrect");

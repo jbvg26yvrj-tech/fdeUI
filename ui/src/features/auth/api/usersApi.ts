@@ -1,5 +1,5 @@
 import { apiClient } from '../../../shared/api/apiClient';
-import type { TableApiResponse } from '../../../shared/types/Types';
+import type { TableApiResponse } from '../../../shared/types/types';
 import type { UserDto, CreateUserRequest, UpdateUserRequest } from '../types/types';
 
 export type UsersApiResponse = TableApiResponse<UserDto>;

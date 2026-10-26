@@ -1,9 +1,10 @@
-import type { TableApiResponse } from '../../../shared/types/Types';
+import type { TableApiResponse } from '../../../shared/types/types';
 import type { UserDto } from '../../auth/types/types';
 
 export type ResourceType = 'PAGE' | 'BUTTON' | 'API' | 'TABLE' | 'MENU' | 'GLOBAL';
 
 export interface RoleDto {
+  clientCodes?: string[];
   id: string;
   code: string;
   name: string;
@@ -14,12 +15,14 @@ export interface RoleDto {
 }
 
 export interface CreateRoleRequest {
+  clientCodes?: string[];
   code: string;
   name: string;
   description?: string;
 }
 
 export interface UpdateRoleRequest {
+  clientCodes?: string[];
   name?: string;
   description?: string;
 }

@@ -56,6 +56,7 @@ public class RoleService {
     /**
      * Возвращает постраничный список ролей с фильтрацией.
      */
+    @Transactional(readOnly = true)
     public PagedResponse<RoleResponse> getAllPaged(int page, int size, String sort, String code, String name,
                                                    String description, String createdAt, String createdAtOperator) {
         Sort sortOrder = PaginationUtils.parseSort(sort, ALLOWED_SORT_FIELDS);
@@ -111,12 +112,16 @@ public class RoleService {
      * @throws ValidationException если код роли уже существует
      */
     @Transactional
-    public RoleData create(String code, String name, String description) {
+    public RoleData create(String code, String name, String description) { return create(code, name, description, Set.of()); }
+
+    @Transactional
+    public RoleData create(String code, String name, String description, Set<String> clientCodes) {
         if (rolePort.existsByCode(code)) {
             throw new ValidationException("Role with code '" + code + "' already exists");
         }
 
         RoleData saved = rolePort.save(code, name, description, false);
+        if (clientCodes != null) saved = rolePort.updateClientCodes(saved.id(), clientCodes);
         log.info("Создана роль: {} (code={})", saved.id(), saved.code());
         return saved;
     }
@@ -131,12 +136,16 @@ public class RoleService {
      * @throws RoleNotFoundException если роль не найдена
      */
     @Transactional
-    public RoleData update(UUID id, String name, String description) {
+    public RoleData update(UUID id, String name, String description) { return update(id, name, description, null); }
+
+    @Transactional
+    public RoleData update(UUID id, String name, String description, Set<String> clientCodes) {
         if (rolePort.findById(id).isEmpty()) {
             throw new RoleNotFoundException("Role not found: " + id);
         }
 
         RoleData updated = rolePort.update(id, name, description);
+        if (clientCodes != null) updated = rolePort.updateClientCodes(id, clientCodes);
         log.info("Обновлена роль: {} (code={})", updated.id(), updated.code());
         return updated;
     }
@@ -302,6 +311,7 @@ public class RoleService {
                 .name(entity.getName())
                 .description(entity.getDescription())
                 .createdAt(entity.getCreatedAt())
+                .clientCodes(entity.getClientCodes())
                 .build();
     }
 }

@@ -57,6 +57,11 @@ public class AuthController {
     private final AuthService authService;
     private final JwtProperties jwtProperties;
     private final TokenPort tokenPort;
+    private final ru.spasibo.bilt.fdeapi.ldap.LdapLoginService ldapLoginService;
+    private final ru.spasibo.bilt.fdeapi.ldap.LdapSettingsService ldapSettingsService;
+
+    @GetMapping("/providers")
+    public Map<String, Boolean> providers() { return Map.of("ldapEnabled", ldapSettingsService.enabled()); }
 
     /**
      * Регистрирует нового пользователя.
@@ -99,7 +104,9 @@ public class AuthController {
             @ApiResponse(responseCode = "403", description = "Учётная запись не активирована или заблокирована")
     })
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        AuthResult result = authService.login(request.getLogin(), request.getPassword());
+        AuthResult result = request.getProvider() == LoginRequest.Provider.LDAP
+                ? ldapLoginService.login(request.getLogin(), request.getPassword())
+                : authService.login(request.getLogin(), request.getPassword());
 
         ResponseCookie refreshCookie = createRefreshTokenCookie(
                 result.tokenPair().refreshToken(), result.user().id());

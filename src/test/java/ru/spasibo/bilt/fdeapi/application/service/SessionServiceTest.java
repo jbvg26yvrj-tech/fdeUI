@@ -64,6 +64,9 @@ class SessionServiceTest {
     @Mock
     private SecurityContext securityContext;
 
+    @Mock
+    private AccessScopeService accessScopeService;
+
     @InjectMocks
     private SessionService sessionService;
 
@@ -117,8 +120,7 @@ class SessionServiceTest {
     }
 
     private void mockNoRlsFilter() {
-        when(rlsFilterService.getResolvedFilterForResource(eq(ResourceDefinition.TABLE_SESSIONS.getCode()), eq(LOGIN)))
-                .thenReturn(Optional.empty());
+        when(accessScopeService.sessions()).thenReturn(Specification.allOf());
     }
 
     @Nested
@@ -128,7 +130,6 @@ class SessionServiceTest {
         @Test
         @DisplayName("should return SessionResponse with pipelineName when session and pipeline exist")
         void getById_found() {
-            mockSecurityContext();
             mockNoRlsFilter();
 
             PipelineSessionEntity session = buildSessionEntity();
@@ -160,7 +161,6 @@ class SessionServiceTest {
         @Test
         @DisplayName("should throw SessionNotFoundException when session does not exist")
         void getById_notFound() {
-            mockSecurityContext();
             mockNoRlsFilter();
             UUID unknownId = UUID.randomUUID();
 
@@ -174,7 +174,6 @@ class SessionServiceTest {
         @Test
         @DisplayName("should return pipelineName = null when pipeline was deleted")
         void getById_pipelineDeleted() {
-            mockSecurityContext();
             mockNoRlsFilter();
 
             PipelineSessionEntity session = buildSessionEntity();
@@ -191,7 +190,6 @@ class SessionServiceTest {
         @Test
         @DisplayName("should return processed files with totals when task has files")
         void getById_withProcessedFiles() {
-            mockSecurityContext();
             mockNoRlsFilter();
 
             PipelineSessionEntity session = buildSessionEntity();

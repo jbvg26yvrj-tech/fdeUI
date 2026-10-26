@@ -34,6 +34,7 @@ public class ScheduleProxyController {
     private final DispatcherPort dispatcherPort;
     private final PipelineRepository pipelineRepository;
     private final ObjectMapper objectMapper;
+    private final ru.spasibo.bilt.fdeapi.application.service.AccessScopeService accessScopeService;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @PreAuthorize("@permissionService.currentUserHasPermission('api.schedules.create')")
@@ -55,6 +56,7 @@ public class ScheduleProxyController {
             @Parameter(description = "Идентификатор пайплайна") @PathVariable UUID pipelineId) {
         log.debug("Получение расписания для пайплайна: {}", pipelineId);
 
+        accessScopeService.requirePipeline(pipelineId);
         return dispatcherPort.proxyGet(DISPATCHER_SCHEDULES_PATH + "/" + pipelineId);
     }
 
@@ -66,6 +68,11 @@ public class ScheduleProxyController {
             @RequestBody String body) {
         log.info("Обновление расписания для пайплайна: {}", pipelineId);
 
+        accessScopeService.requirePipeline(pipelineId);
+        try {
+            JsonNode target = objectMapper.readTree(body).get("pipelineId");
+            if (target != null && !target.isNull()) accessScopeService.requirePipeline(UUID.fromString(target.asText()));
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) { throw new IllegalArgumentException("Invalid request body"); }
         return dispatcherPort.proxyPut(DISPATCHER_SCHEDULES_PATH + "/" + pipelineId, body);
     }
 
@@ -76,6 +83,7 @@ public class ScheduleProxyController {
             @Parameter(description = "Идентификатор пайплайна") @PathVariable UUID pipelineId) {
         log.info("Удаление расписания для пайплайна: {}", pipelineId);
 
+        accessScopeService.requirePipeline(pipelineId);
         return dispatcherPort.proxyDelete(DISPATCHER_SCHEDULES_PATH + "/" + pipelineId);
     }
 
@@ -98,8 +106,6 @@ public class ScheduleProxyController {
     }
 
     private void validatePipelineExists(UUID pipelineId) {
-        if (!pipelineRepository.existsById(pipelineId)) {
-            throw new PipelineNotFoundException(pipelineId);
-        }
+        accessScopeService.requirePipeline(pipelineId);
     }
 }

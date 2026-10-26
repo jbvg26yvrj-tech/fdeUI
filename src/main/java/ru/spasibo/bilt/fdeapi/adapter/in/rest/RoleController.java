@@ -133,7 +133,7 @@ public class RoleController {
         permissionService.requireAdmin(principal.getPrincipal());
 
         RoleData created = roleService.create(
-                request.getCode(), request.getName(), request.getDescription());
+                request.getCode(), request.getName(), request.getDescription(), request.getClientCodes());
         return ResponseEntity.status(HttpStatus.CREATED).body(toResponse(created));
     }
 
@@ -161,7 +161,7 @@ public class RoleController {
         requireAuthenticated(principal);
         permissionService.requireAdmin(principal.getPrincipal());
 
-        RoleData updated = roleService.update(id, request.getName(), request.getDescription());
+        RoleData updated = roleService.update(id, request.getName(), request.getDescription(), request.getClientCodes());
         return ResponseEntity.ok(toResponse(updated));
     }
 
@@ -197,6 +197,7 @@ public class RoleController {
                 .description(data.description())
                 .isSystem(data.isSystem())
                 .createdAt(data.createdAt())
+                .clientCodes(data.clientCodes())
                 .build();
     }
 

@@ -1,4 +1,5 @@
 export interface AuthRequestDto {
+  provider?: 'LOCAL' | 'LDAP';
   login: string;
   password: string;
 }
@@ -27,6 +28,7 @@ export interface ChangePasswordResponse {
 }
 
 export interface UserDto {
+  authSource?: 'LOCAL' | 'LDAP';
   id: string;
   login: string;
   activated: boolean;

@@ -4,6 +4,7 @@ import { ApiError } from './ApiError';
 
 export interface UserContextResponse {
   user: {
+    authSource?: 'LOCAL' | 'LDAP';
     id: string;
     login: string;
     activated: boolean;
@@ -23,12 +24,14 @@ class UserContextService {
   private contextCacheKey = 'userContext';
   private tableSettingsCacheKey = 'tableSettingsCache';
   private pendingRequest: Promise<UserContextResponse> | null = null;
+  private generation = 0;
 
   async getUserContext(_request?: UserContextRequest): Promise<UserContextResponse> {
     if (this.pendingRequest) {
       return this.pendingRequest;
     }
 
+    const generation = this.generation;
     try {
       const url = '/user-context';
 
@@ -37,16 +40,18 @@ class UserContextService {
       this.pendingRequest = apiClient
         .get<UserContextResponse>(url)
         .then(response => {
+          if (generation !== this.generation) {
+            throw new ApiError('User context changed; reload permissions', 409, 'CONTEXT_CHANGED');
+          }
           this.cacheContext(response);
           return response;
         })
         .finally(() => {
-          this.pendingRequest = null;
+          if (generation === this.generation) this.pendingRequest = null;
         });
 
       return await this.pendingRequest;
     } catch (error) {
-      this.pendingRequest = null;
       console.error('[UserContext] Ошибка загрузки контекста:', error);
 
       if (error instanceof ApiError) {
@@ -218,6 +223,12 @@ class UserContextService {
 
   // Очистить кэш
   clearCache(): void {
+    this.generation += 1;
+    this.pendingRequest = null;
+    this.clearStoredContext();
+  }
+
+  private clearStoredContext(): void {
     try {
       sessionStorage.removeItem(this.contextCacheKey);
       sessionStorage.removeItem(this.tableSettingsCacheKey);
@@ -228,7 +239,9 @@ class UserContextService {
 
   // Принудительно обновить контекст
   async refreshContext(request?: UserContextRequest): Promise<UserContextResponse> {
-    this.clearCache();
+    // Refresh within the same identity may share an in-flight request.
+    // Only clearCache (logout/login) invalidates that identity's promises.
+    this.clearStoredContext();
     return this.getUserContext(request);
   }
 

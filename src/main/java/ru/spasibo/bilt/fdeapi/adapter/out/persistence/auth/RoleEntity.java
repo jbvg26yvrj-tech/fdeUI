@@ -48,6 +48,12 @@ public class RoleEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @jakarta.persistence.ElementCollection(fetch = jakarta.persistence.FetchType.EAGER)
+    @jakarta.persistence.CollectionTable(name = "role_client_scopes", schema = "auth", joinColumns = @jakarta.persistence.JoinColumn(name = "role_id"))
+    @Column(name = "client_code", nullable = false, length = 255)
+    @Builder.Default
+    private java.util.Set<String> clientCodes = new java.util.HashSet<>();
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

@@ -29,6 +29,28 @@ import java.util.UUID;
 @Builder
 public class UserEntity {
 
+    @jakarta.persistence.Version
+    private long version;
+
+    @Column(name = "auth_source", nullable = false, length = 8)
+    @Builder.Default
+    private String authSource = "LOCAL";
+
+    @Column(name = "external_id", length = 255)
+    private String externalId;
+
+    @Column(name = "directory_disabled", nullable = false)
+    private boolean directoryDisabled;
+
+    @Column(name = "manual_disabled", nullable = false)
+    private boolean manualDisabled;
+
+    @Column(name = "display_name")
+    private String displayName;
+
+    @Column(length = 320)
+    private String email;
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;

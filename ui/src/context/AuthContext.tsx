@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef,
+  type ReactNode,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { UserDto } from '../features/auth/types/types';
 import { userContextApi } from '../shared/api/userContextApi';
@@ -60,6 +67,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const authVersion = useRef(0);
 
   // Функция для повторной попытки API вызовов
   const retryApiCall = async <T,>(apiCall: () => Promise<T>, maxRetries = 1): Promise<T> => {
@@ -92,31 +100,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // Функция для проверки и установки состояния аутентификации
   const checkAuthState = async () => {
+    const version = authVersion.current;
     const token = secureStorage.getItem(TOKEN_KEY);
 
     if (token) {
       try {
-        // Пытаемся получить данные пользователя из userContext
-        const userContext = userContextApi.getCachedContext();
-        if (userContext && userContext.user) {
-          setUser(userContext.user);
-          setIsAuthenticated(true);
-        } else {
-          // Если нет в кэше, загружаем контекст
-          try {
-            const context = await userContextApi.getUserContext();
-            setUser(context.user);
-            setIsAuthenticated(true);
-          } catch (error) {
-            console.error('Error loading user context:', error);
-            // При ошибке загрузки очищаем хранилище
-            secureStorage.clear();
-            userContextApi.clearCache();
-            setUser(null);
-            setIsAuthenticated(false);
-          }
-        }
+        // Cached permissions cannot establish the current token's identity.
+        const context = await userContextApi.getUserContext();
+        if (version !== authVersion.current) return;
+        setUser(context.user);
+        setIsAuthenticated(true);
       } catch (error) {
+        if (version !== authVersion.current) return;
         console.error('Error parsing user context:', error);
         // При ошибке парсинга очищаем хранилище
         secureStorage.clear();
@@ -162,22 +157,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const login = async (userData: UserDto, token: string) => {
+    const version = ++authVersion.current;
     try {
       secureStorage.setItem(TOKEN_KEY, token);
 
       // Сразу устанавливаем пользователя из полученных данных
       setUser(userData);
       setIsAuthenticated(true);
+      setIsLoading(false);
 
       // Очищаем кэш контекста при новом логине
       userContextApi.clearCache();
 
       // Загружаем полный контекст пользователя в фоне
       setTimeout(async () => {
+        if (version !== authVersion.current) return;
         try {
           const context = await userContextApi.refreshContext();
           // Обновляем данные пользователя из контекста (на случай если есть различия)
-          if (context.user && context.user.id === userData.id) {
+          if (version === authVersion.current && context.user && context.user.id === userData.id) {
             setUser(context.user);
           }
         } catch (error) {
@@ -186,7 +184,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }, 100);
 
       // Если требуется смена пароля, устанавливаем флаг
-      if (userData.passwordChangeRequired) {
+      if (userData.authSource !== 'LDAP' && userData.passwordChangeRequired) {
         sessionStorage.setItem('requiresPasswordChange', 'true');
       } else {
         // Если не требуется, убедимся что флаг сброшен
@@ -202,6 +200,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async () => {
+    const version = ++authVersion.current;
+    userContextApi.clearCache();
     // Вызываем серверный логаут для инвалидации httpOnly refresh cookie
     try {
       await authApi.logout();
@@ -209,6 +209,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Игнорируем ошибку серверного логаута — всё равно очищаем клиент
     }
 
+    if (version !== authVersion.current) return;
+    setIsLoading(false);
     try {
       secureStorage.clear();
       sessionStorage.removeItem('requiresPasswordChange');

@@ -68,6 +68,9 @@ class PipelineServiceTest {
     @Mock
     private RlsSpecificationBuilder rlsSpecificationBuilder;
 
+    @Mock
+    private AccessScopeService accessScopeService;
+
     @InjectMocks
     private PipelineService pipelineService;
 
@@ -642,7 +645,7 @@ class PipelineServiceTest {
             PipelineEntity entity = buildPipelineEntity();
             Page<PipelineEntity> page = new PageImpl<>(List.of(entity), PageRequest.of(0, 20), 1);
             when(pipelineRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
-            when(rlsFilterService.getResolvedFilterForResource(any(), any())).thenReturn(Optional.empty());
+            when(accessScopeService.pipelines()).thenReturn(Specification.allOf());
 
             PagedResponse<PipelinePageResponse> response =
                     pipelineService.getAll(0, 20, null, null, "test", "pc", "dwh", null, null, null, null, null, null);
@@ -658,7 +661,7 @@ class PipelineServiceTest {
         void getAll_defaultSort() {
             Page<PipelineEntity> page = new PageImpl<>(Collections.emptyList(), PageRequest.of(0, 20), 0);
             when(pipelineRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
-            when(rlsFilterService.getResolvedFilterForResource(any(), any())).thenReturn(Optional.empty());
+            when(accessScopeService.pipelines()).thenReturn(Specification.allOf());
 
             pipelineService.getAll(0, 20, null, null, null, null, null, null, null, null, null, null, null);
 
@@ -673,7 +676,7 @@ class PipelineServiceTest {
         @Test
         @DisplayName("should throw PipelineValidationException for invalid sort field")
         void getAll_invalidSortField_throwsValidation() {
-            when(rlsFilterService.getResolvedFilterForResource(any(), any())).thenReturn(Optional.empty());
+            when(accessScopeService.pipelines()).thenReturn(Specification.allOf());
 
             assertThatThrownBy(() -> pipelineService.getAll(0, 20, "hackField,asc", null, null, null, null, null, null, null, null, null, null))
                     .isInstanceOf(PipelineValidationException.class)
@@ -689,7 +692,7 @@ class PipelineServiceTest {
         void setUpSecurityContext() {
             SecurityContextHolder.getContext().setAuthentication(
                     new UsernamePasswordAuthenticationToken("testuser", null, Collections.emptyList()));
-            lenient().when(rlsFilterService.getResolvedFilterForResource(any(), any())).thenReturn(Optional.empty());
+            lenient().when(accessScopeService.pipelines()).thenReturn(Specification.allOf());
         }
 
         @Test
