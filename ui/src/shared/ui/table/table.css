@@ -142,3 +142,79 @@
     animation: none;
   }
 }
+
+.fde-quick-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+.fde-quick-filters > * {
+  min-width: 0;
+}
+.fde-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+.fde-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: left;
+  background: var(--fde-accent-soft);
+  color: var(--fde-accent);
+  padding: 6px 10px;
+  border: 1px solid var(--fde-border);
+  border-radius: 6px;
+}
+.fde-filter-chip:hover {
+  border-color: var(--fde-accent);
+}
+.fde-filter-help {
+  font-size: 12px;
+  color: var(--fde-muted);
+}
+.fde-table-title {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.fde-entity-card {
+  position: relative;
+}
+.fde-card-link {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+}
+.fde-card-link:focus-visible {
+  outline: 2px solid var(--fde-accent);
+  outline-offset: 3px;
+}
+.fde-card-actions {
+  position: relative;
+  z-index: 10;
+}
+.fde-last-visited,
+.fde-last-visited > .fde-entity-card {
+  background: var(--fde-accent-soft);
+  box-shadow: inset 3px 0 0 var(--fde-accent);
+}
+.fde-last-visited:hover,
+.fde-last-visited > .fde-entity-card:hover {
+  background: var(--fde-accent-soft);
+}
+.fde-list-back {
+  display: inline-block;
+  color: var(--fde-accent);
+  font-weight: 550;
+  margin-bottom: 12px;
+  border-radius: 3px;
+}
+.fde-list-back:hover {
+  text-decoration: underline;
+}

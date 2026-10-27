@@ -19,6 +19,8 @@ describe('filter field selection', () => {
     view.rerender(<TableFilters {...props} initialFilters={{ name: 'saved' }} />);
     expect(screen.getByRole('textbox')).toBeInTheDocument();
     view.rerender(<TableFilters {...props} initialFilters={{}} />);
+    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Удалить фильтр: Название' }));
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 });

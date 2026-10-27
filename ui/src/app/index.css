@@ -73,27 +73,63 @@ html.dark select:-webkit-autofill:focus {
 }
 
 :root {
-  --fde-ink: #172b46;
-  --fde-muted: #64748b;
-  --fde-border: #dce3ec;
+  /* Neutral surfaces, interaction fills, borders, solid actions, and readable text. */
+  --fde-ink: #20292d;
+  --fde-muted: #59686e;
+  --fde-border: #cdd7db;
   --fde-surface: #ffffff;
-  --fde-canvas: #f4f7fb;
-  --fde-accent: #315ee8;
-  --fde-accent-soft: #edf2ff;
+  --fde-canvas: #f5f7f8;
+  --fde-accent: #087779;
+  --fde-accent-soft: #e0f2f0;
+  --fde-action: #087779;
+  --fde-action-hover: #066466;
+  --fde-sidebar: #202a2e;
+  --fde-sidebar-ink: #d9e3e6;
+  --fde-sidebar-muted: #aabdc3;
+  --fde-sidebar-border: #3d4c52;
+  --fde-sidebar-hover: #303e44;
+  --fde-sidebar-active: #1e5053;
+  --fde-sidebar-marker: #6fd6ce;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: var(--fde-ink);
   background: var(--fde-canvas);
   font-synthesis: none;
 }
 .dark {
-  --fde-ink: #e6edf7;
-  --fde-muted: #a3b2c7;
-  --fde-border: #334155;
-  --fde-surface: #192638;
-  --fde-canvas: #111c2c;
-  --fde-accent: #8ba9ff;
-  --fde-accent-soft: #253b61;
+  --fde-ink: #e4ebee;
+  --fde-muted: #acbbc1;
+  --fde-border: #435157;
+  --fde-surface: #20272b;
+  --fde-canvas: #171c1f;
+  --fde-accent: #72d6ce;
+  --fde-accent-soft: #243f40;
+  --fde-action: #087779;
+  --fde-action-hover: #08696b;
+  --fde-sidebar: #1b2327;
   color-scheme: dark;
+}
+/* Keep existing utility-based surfaces and controls on the same neutral/accent scale. */
+@theme {
+  --color-gray-50: #f5f7f8;
+  --color-gray-100: #edf1f3;
+  --color-gray-200: #dce4e7;
+  --color-gray-300: #c3cfd4;
+  --color-gray-400: #8b9ca4;
+  --color-gray-500: #63767f;
+  --color-gray-600: #50626b;
+  --color-gray-700: #37464d;
+  --color-gray-800: #20272b;
+  --color-gray-900: #171c1f;
+  --color-blue-50: #effaf8;
+  --color-blue-100: #ddf3ef;
+  --color-blue-200: #b6e6df;
+  --color-blue-300: #8bd9cf;
+  --color-blue-400: #62c9be;
+  --color-blue-500: #159c99;
+  --color-blue-600: #087779;
+  --color-blue-700: #086466;
+  --color-blue-800: #105153;
+  --color-blue-900: #193e40;
 }
 body {
   margin: 0;
@@ -115,7 +151,7 @@ select:not(:disabled) {
   outline-offset: 3px;
 }
 input[type='checkbox'] {
-  accent-color: #315ee8;
+  accent-color: var(--fde-accent);
   width: 16px;
   height: 16px;
 }
@@ -149,11 +185,11 @@ input[type='checkbox'] {
   outline-offset: 3px;
 }
 .fde-button--primary {
-  background: #315ee8;
+  background: var(--fde-action);
   color: #fff;
 }
 .fde-button--primary:hover:not(:disabled) {
-  background: #254cc5;
+  background: var(--fde-action-hover);
 }
 .fde-button--secondary,
 .fde-button--outlined {
@@ -227,7 +263,7 @@ input[type='checkbox'] {
 .fde-permission-nav {
   display: flex;
   gap: 4px;
-  overflow-x: auto;
+  flex-wrap: wrap;
   padding: 4px;
   background: var(--fde-surface);
   border: 1px solid var(--fde-border);
@@ -235,7 +271,8 @@ input[type='checkbox'] {
 }
 .fde-permission-nav button {
   padding: 9px 13px;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: left;
   border-radius: 7px;
   color: var(--fde-muted);
   font-weight: 550;
@@ -260,4 +297,57 @@ input[type='checkbox'] {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+.fde-home-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.fde-access-overview {
+  max-width: 76ch;
+  color: var(--fde-muted);
+}
+.fde-access-help {
+  margin-top: 8px;
+}
+.fde-access-help summary,
+.fde-permission-advanced summary {
+  cursor: pointer;
+  color: var(--fde-ink);
+  font-weight: 550;
+}
+.fde-access-help ul {
+  list-style: disc;
+  padding-left: 20px;
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+}
+.fde-permission-advanced {
+  border-bottom: 1px solid var(--fde-border);
+  padding-bottom: 16px;
+}
+.fde-permission-advanced > p {
+  color: var(--fde-muted);
+  margin: 10px 0;
+}
+.fde-permission-description {
+  margin-bottom: 16px;
+  max-width: 76ch;
+}
+.fde-permission-description h2 {
+  font-weight: 600;
+  font-size: 17px;
+  margin-bottom: 4px;
+}
+.fde-permission-description p {
+  color: var(--fde-muted);
+}
+summary:focus-visible {
+  outline: 2px solid var(--fde-accent);
+  outline-offset: 4px;
 }

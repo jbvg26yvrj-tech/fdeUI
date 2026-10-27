@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useListReturn } from '../../../shared/hooks/useListReturn';
 import { toast } from 'sonner';
 import { pipelineSessionsApi } from '../api/pipelineSessionsApi';
 import { triggersApi } from '../../pipeline/api/triggersApi';
@@ -9,7 +10,7 @@ import type {
   StatusDto,
 } from '../types/types';
 import { TERMINAL_STATUSES } from '../types/types';
-import type { Column, TableParams } from '../../../shared/ui/table/types/type';
+import type { Column, TableParams, MenuItem } from '../../../shared/ui/table/types/type';
 import Table from '../../../shared/ui/table/Table';
 import { TableWithStates } from '../../../shared/ui/table/components/TableStates';
 import { SYS_TABLE_RESOURCES } from '../../../shared/resources';
@@ -44,6 +45,7 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
   onColumnResize,
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [pipelineId, clearPipelineId] = useUrlFilterParam('pipelineId');
   const { displayMode, setDisplayMode } = useViewMode(TABLE_ID);
 
@@ -76,9 +78,6 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
     mapToMap,
   });
 
-  const handleViewSessionDetails = useCallback((session: PipelineSessionPageDto) => {
-    navigate(`/sessions/${session.id}`);
-  }, [navigate]);
 
   const handleStopSession = useCallback((session: PipelineSessionPageDto) => {
     setStopModalState({ isOpen: true, session });
@@ -90,6 +89,7 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
     serverMeta,
     handleTableChange,
     savedState,
+    initialPage,
     permissions,
     permissionsLoading,
     isLoadingState,
@@ -97,6 +97,7 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
     loadServerData,
   } = useTableData<PipelineSessionPageDto>({
     resourceCode: SYS_TABLE_RESOURCES.TABLE_SESSIONS.code,
+    navigationSearch: location.search,
     fetchData: async (params?: TableParams) => {
       const safeParams = params || {
         pagination: { page: 1, size: 10 },
@@ -120,6 +121,12 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
     },
     dependencies: [pipelineId],
   });
+
+  const { remember, lastId, returnTo } = useListReturn(SYS_TABLE_RESOURCES.TABLE_SESSIONS.code, isLoading || isLoadingState || permissionsLoading || isLoadingStatuses);
+  const handleViewSessionDetails = useCallback((session: PipelineSessionPageDto) => {
+    remember(session.id);
+    navigate(`/sessions/${session.id}`, { state: { returnTo } });
+  }, [navigate, remember, returnTo]);
 
   const isValidationError = error instanceof ApiError && error.status === 400;
 
@@ -159,7 +166,7 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
   };
 
   const columns: Column<PipelineSessionPageDto>[] = [
-    createTextColumn('id', 'ID сессии', { width: 120 }),
+    { ...createTextColumn<PipelineSessionPageDto>('id', 'ID сессии', { width: 120 }), render: (value, row) => permissions?.canSessionProgressOpen ? <Link to={`/sessions/${row.id}`} state={{ returnTo }} onClick={() => remember(row.id)}>{String(value)}</Link> : String(value) },
     createTextColumn('pipelineId', 'ID пайплайна', { width: 120 }),
     createTextColumn('pipelineName', 'Название пайплайна', {
       width: 150,
@@ -183,10 +190,11 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
     createDateTimeColumn('updatedAt', 'Обновлена', { width: 150 }),
     createActionsColumn(row => {
       const isTerminal = TERMINAL_STATUSES.includes(row.status);
-      const actions = [];
+      const actions: MenuItem<PipelineSessionPageDto>[] = [];
       actions.push({
-        action: 'details',
+        action: 'view',
         label: 'Подробности',
+        disabled: !permissions?.canSessionProgressOpen,
         onClick: () => handleViewSessionDetails(row),
       });
       if (!isTerminal) {
@@ -210,6 +218,8 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
       return (
         <SessionCard
           session={session}
+          onNavigate={() => remember(session.id)}
+          returnTo={returnTo}
           permissions={permissions}
           onViewProgress={handleViewSessionDetails}
           onStop={handleStopSession}
@@ -217,7 +227,7 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
         />
       );
     },
-    [permissions, handleViewSessionDetails, handleStopSession, getStatusConfig],
+    [permissions, handleViewSessionDetails, handleStopSession, getStatusConfig, remember, returnTo],
   );
 
   return (
@@ -279,7 +289,11 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
         >
           {() => (
             <Table
+              loading={isLoading}
               serverMeta={serverMeta}
+              initialPage={initialPage}
+              pageSize={savedState?.pageSize || 10}
+              rowClassName={row => row.id === lastId ? "fde-last-visited" : ""}
               onTableChange={handleTableChange}
               columns={columns}
               data={data}

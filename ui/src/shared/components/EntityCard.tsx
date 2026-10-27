@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import '../ui/table/table.css';
 import { MenuActions } from '../ui/table/components/MenuActions';
 import { type MenuAction } from '../ui/table/types/type';
@@ -21,6 +22,9 @@ export interface CardAction {
 }
 
 interface EntityCardProps {
+  href?: string;
+  linkState?: unknown;
+  onNavigate?: () => void;
   item: any;
   fields: CardField[];
   actions?: CardAction[];
@@ -36,6 +40,9 @@ export const EntityCard: React.FC<EntityCardProps> = ({
   titleKey,
   titleRender,
   className = '',
+  href,
+  linkState,
+  onNavigate,
 }) => {
   const title = titleRender ? titleRender(item) : titleKey ? item[titleKey] : undefined;
 
@@ -51,13 +58,14 @@ export const EntityCard: React.FC<EntityCardProps> = ({
 
   return (
     <div className={`fde-entity-card p-4 h-full flex flex-col min-w-0 ${className}`}>
+      {href && <Link to={href} state={linkState} onClick={onNavigate} className='fde-card-link'><span className='sr-only'>Открыть {title || item.id}</span></Link>}
       <div className='flex justify-between items-start gap-3 mb-3'>
         {title && (
           <h3 className='font-semibold text-base min-w-0 break-words' title={title}>
             {title}
           </h3>
         )}
-        {actions.length > 0 && <MenuActions menuItems={menuItems} row={item} />}
+        {actions.length > 0 && <div className="fde-card-actions"><MenuActions menuItems={menuItems} row={item} /></div>}
       </div>
 
       <div className='space-y-2 text-sm flex-1'>

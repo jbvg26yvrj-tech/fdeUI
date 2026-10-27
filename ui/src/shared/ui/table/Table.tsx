@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
 import './table.css';
 import { Pagination } from './components/Pagination';
@@ -16,6 +16,8 @@ export const Table = <T extends object>({
   serverMeta,
   onTableChange,
   pageSize = 10,
+  initialPage = 1,
+  rowClassName,
   className,
   emptyMessage = 'Нет данных для отображения',
   onRowClick,
@@ -41,6 +43,7 @@ export const Table = <T extends object>({
 
   const tableState = useTableState({
     initialPageSize: pageSize,
+    initialPage,
     serverMeta,
     onTableChange,
     initialFilters,
@@ -238,6 +241,7 @@ export const Table = <T extends object>({
                 minColumnWidth={minColumnWidth}
                 emptyMessage={emptyMessage}
                 rowKey={rowKey}
+                rowClassName={rowClassName}
               />
             </table>
           </div>
@@ -251,7 +255,7 @@ export const Table = <T extends object>({
                     : String(item[rowKey] as any)
                   : index;
                 return (
-                  <div key={key}>{renderCard ? renderCard(item) : defaultRenderCard(item)}</div>
+                  <div key={key} className={rowClassName?.(item)}>{renderCard ? renderCard(item) : defaultRenderCard(item)}</div>
                 );
               })
             ) : (

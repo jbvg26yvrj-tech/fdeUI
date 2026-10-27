@@ -45,6 +45,8 @@ export interface TableProps<T> {
   serverMeta?: TableMeta;
   onTableChange?: TableChangeCallback;
   pageSize?: number;
+  initialPage?: number;
+  rowClassName?: (row: T) => string;
   className?: string;
   emptyMessage?: string;
   onRowClick?: (row: T) => void;

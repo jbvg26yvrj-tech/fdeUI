@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { useListReturn } from '../../../../shared/hooks/useListReturn';
 import { toast } from 'sonner';
 import { fetchPipelines, mapServerResponseToTableMeta } from '../api/pipelinesTableApi';
 import { pipelinesCrudApi } from '../../api/pipelinesCrudApi';
@@ -77,9 +78,6 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
   // Datacenter bulk change — admin check for button visibility
   const isAdmin = userContextApi.getCachedContext()?.roleCodes?.includes('ADMIN') ?? false;
 
-  const handleViewPipelineDetails = useCallback((pipeline: SimplePipelineData) => {
-    window.open(`/pipelines/${pipeline.id}`, '_blank');
-  }, []);
 
   const handleViewPipelineSessions = useCallback((pipeline: SimplePipelineData) => {
     window.open(`/sessions?pipelineId=${pipeline.id}`, '_blank');
@@ -91,6 +89,7 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
     serverMeta,
     handleTableChange,
     savedState,
+    initialPage,
     permissions,
     permissionsLoading,
     isLoadingState,
@@ -113,6 +112,12 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
       };
     },
   });
+
+  const { remember, lastId, returnTo } = useListReturn(SYS_TABLE_RESOURCES.TABLE_PIPELINES.code, isLoading || isLoadingState || permissionsLoading);
+  const handleViewPipelineDetails = useCallback((pipeline: SimplePipelineData) => {
+    remember(pipeline.id);
+    navigate(`/pipelines/${pipeline.id}`, { state: { returnTo } });
+  }, [navigate, remember, returnTo]);
 
   const isValidationError = error instanceof ApiError && error.status === 400;
 
@@ -238,7 +243,7 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
 
   const columns: Column<SimplePipelineData>[] = [
     createTextColumn('id', 'ID пайплайна', { width: 120 }),
-    createTextColumn('pipelineName', 'Название', { width: 180 }),
+    { ...createTextColumn<SimplePipelineData>('pipelineName', 'Название', { width: 180 }), render: (value, row) => permissions?.canPipelineDetails ? <Link to={`/pipelines/${row.id}`} state={{ returnTo }} onClick={() => remember(row.id)}>{String(value || row.id)}</Link> : String(value || '') },
     createTextColumn('clientFrom', 'От клиента', { width: 150 }),
     createTextColumn('clientTo', 'К клиенту', { width: 150 }),
     createTextColumn('primaryDatacenter', 'Датацентр', { width: 120 }),
@@ -304,6 +309,8 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
     (pipeline: SimplePipelineData) => (
       <PipelineCard
         pipeline={pipeline}
+        onNavigate={() => remember(pipeline.id)}
+        returnTo={returnTo}
         scheduleSummary={scheduleMap[pipeline.id]}
         permissions={permissions}
         onViewDetails={handleViewPipelineDetails}
@@ -315,6 +322,8 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
     ),
     [
       permissions,
+      remember,
+      returnTo,
       scheduleMap,
       handleViewPipelineDetails,
       handleViewPipelineSessions,
@@ -376,6 +385,9 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
             columns={columns}
             data={data}
             serverMeta={serverMeta}
+            initialPage={initialPage}
+            pageSize={savedState?.pageSize || 10}
+            rowClassName={row => row.id === lastId ? "fde-last-visited" : ""}
             onTableChange={handleTableChange}
             displayMode={displayMode}
             renderCard={renderCard}

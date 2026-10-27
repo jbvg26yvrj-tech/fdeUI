@@ -29,8 +29,8 @@
 .fde-sidebar {
   width: 232px;
   flex-shrink: 0;
-  background: #172b46;
-  color: #e6edf7;
+  background: var(--fde-sidebar);
+  color: var(--fde-sidebar-ink);
   padding: 22px 12px;
   overflow: auto;
 }
@@ -41,10 +41,10 @@
 .fde-nav-group + .fde-nav-group {
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid #354861;
+  border-top: 1px solid var(--fde-sidebar-border);
 }
 .fde-nav-label {
-  color: #a9bbd2;
+  color: var(--fde-sidebar-muted);
   font-size: 12px;
   font-weight: 500;
   padding: 0 12px;
@@ -64,19 +64,19 @@
   min-height: 42px;
   padding: 10px 12px;
   border-radius: 6px;
-  color: #d4dfed;
+  color: var(--fde-sidebar-ink);
   font-size: 14px;
   text-decoration: none;
   border-left: 3px solid transparent;
 }
 .fde-nav-link:hover {
-  background: #243b58;
+  background: var(--fde-sidebar-hover);
   color: #fff;
 }
 .fde-nav-link.fde-nav-active {
-  background: #29476c;
+  background: var(--fde-sidebar-active);
   color: #fff;
-  border-left-color: #82a8ff;
+  border-left-color: var(--fde-sidebar-marker);
   font-weight: 600;
 }
 .fde-nav-icon {
@@ -114,7 +114,7 @@
   justify-content: center;
   height: 30px;
   width: 30px;
-  background: var(--fde-accent, #315ee8);
+  background: var(--fde-action);
   border-radius: 6px;
 }
 .fde-brand-name {
@@ -140,7 +140,7 @@
 }
 .fde-icon-button:hover,
 .fde-logout-button:hover {
-  background: #eef2f8;
+  background: var(--fde-canvas);
 }
 .fde-account-name {
   max-width: 180px;
@@ -161,7 +161,7 @@
 .fde-icon-button:focus-visible,
 .fde-logout-button:focus-visible,
 .fde-drawer-close:focus-visible {
-  outline: 2px solid #82a8ff;
+  outline: 2px solid var(--fde-sidebar-marker);
   outline-offset: 3px;
 }
 .fde-drawer-backdrop {
@@ -176,7 +176,7 @@
   inset: 64px auto 0 0;
   z-index: 40;
   width: min(280px, 85vw);
-  background: #172b46;
+  background: var(--fde-sidebar);
   display: flex;
   flex-direction: column;
   box-shadow: 8px 0 30px rgb(10 25 44 / 18%);
@@ -189,30 +189,30 @@
   margin: 16px 16px 0;
   padding: 10px;
   text-align: left;
-  color: #e6edf7;
-  border: 1px solid #526680;
+  color: var(--fde-sidebar-ink);
+  border: 1px solid var(--fde-sidebar-border);
   border-radius: 6px;
   font-size: 14px;
 }
 .dark .fde-shell,
 .dark .fde-auth-shell {
-  background: #101c2d;
-  color: #e6edf7;
+  background: var(--fde-canvas);
+  color: var(--fde-sidebar-ink);
 }
 .dark .fde-topbar {
-  background: #1b2c42;
-  border-color: #354861;
+  background: var(--fde-surface);
+  border-color: var(--fde-sidebar-border);
 }
 .dark .fde-section-name {
-  color: #b0c1d7;
-  border-color: #354861;
+  color: var(--fde-muted);
+  border-color: var(--fde-sidebar-border);
 }
 .dark .fde-logout-button {
-  border-color: #526680;
+  border-color: var(--fde-sidebar-border);
 }
 .dark .fde-icon-button:hover,
 .dark .fde-logout-button:hover {
-  background: #29415f;
+  background: var(--fde-accent-soft);
 }
 @media (max-width: 900px) {
   .fde-main {

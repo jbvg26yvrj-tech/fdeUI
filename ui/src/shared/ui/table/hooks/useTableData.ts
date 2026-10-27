@@ -3,9 +3,11 @@ import type { TableMeta, TableParams } from '../types/type';
 import { usePermissions } from '../../../hooks/usePermissions';
 import { useTablePersist } from '../../../hooks/useTablePersist';
 import { useTableState } from './useTableState';
+import { listStateKey, readListState, writeListState } from '../../../hooks/listReturnState';
 
 interface UseTableDataOptions<T> {
   resourceCode: string;
+  navigationSearch?: string;
   fetchData: (params?: TableParams) => Promise<{
     data: T[];
     meta: TableMeta;
@@ -18,6 +20,7 @@ interface UseTableDataOptions<T> {
 
 export function useTableData<T>({
   resourceCode,
+  navigationSearch,
   fetchData,
   defaultPageSize = 10,
   dependencies = [],
@@ -29,7 +32,7 @@ export function useTableData<T>({
 
   // 2. Персистентность
   const {
-    savedState,
+    savedState: persistedState,
     isLoading: isLoadingState,
     saveState,
     hasSavedState,
@@ -37,6 +40,18 @@ export function useTableData<T>({
     resourceCode: resourceCode as any,
     waitForContext: true,
   });
+
+  const navigationKey = listStateKey(resourceCode, navigationSearch);
+  const navigationParams = readListState(navigationKey).params;
+  const savedState = navigationParams ? {
+    sortBy: navigationParams.sort?.field || null,
+    sortOrder: navigationParams.sort?.order || 'asc' as const,
+    filters: navigationParams.filters || {},
+    pageSize: navigationParams.pagination.size,
+  } : persistedState;
+  const requestSequence = useRef(0);
+  const currentParamsRef = useRef<{ key: string | null; params: TableParams } | null>(null);
+  useEffect(() => () => { requestSequence.current += 1; }, []);
 
   // 3. Состояния данных
   const [data, setData] = useState<T[]>([]);
@@ -53,12 +68,13 @@ export function useTableData<T>({
   // 6. Создаем базовую функцию загрузки, которая не зависит от tableState
   const createLoadServerData = useCallback(() => {
     return async (params?: TableParams) => {
+      const sequence = ++requestSequence.current;
       setIsLoading(true);
       setError(null);
 
       try {
         // Если параметры не переданы, создаем их из savedState
-        const requestParams = params || {
+        const requestParams = params || (currentParamsRef.current?.key === navigationKey ? currentParamsRef.current.params : null) || readListState(navigationKey).params || {
           pagination: {
             page: 1,
             size: savedState?.pageSize || defaultPageSize,
@@ -72,7 +88,10 @@ export function useTableData<T>({
           filters: savedState?.filters || {},
         };
 
+        currentParamsRef.current = { key: navigationKey, params: requestParams };
+        writeListState(navigationKey, { params: requestParams });
         const response = await fetchData(requestParams);
+        if (sequence !== requestSequence.current) return;
         setData(response.data);
         setServerMeta(response.meta);
 
@@ -80,17 +99,19 @@ export function useTableData<T>({
           onDataLoaded(response.data);
         }
       } catch (err) {
+        if (sequence !== requestSequence.current) return;
         setError(err as Error);
         console.error(`[${resourceCode}] Ошибка загрузки:`, err);
       } finally {
-        setIsLoading(false);
+        if (sequence === requestSequence.current) setIsLoading(false);
       }
     };
-  }, [fetchData, savedState, defaultPageSize, resourceCode, onDataLoaded]);
+  }, [fetchData, savedState, defaultPageSize, resourceCode, onDataLoaded, navigationKey]);
 
   // 7. Инициализация useTableState
   const tableState = useTableState({
     initialPageSize: savedState?.pageSize || defaultPageSize,
+    initialPage: navigationParams?.pagination.page || 1,
     initialFilters: savedState?.filters || {},
     initialSort: savedState?.sortBy
       ? {
@@ -98,10 +119,7 @@ export function useTableData<T>({
           order: savedState.sortOrder || 'asc',
         }
       : null,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    onTableChange: useCallback((params: TableParams) => {
-      // Сохранение происходит в handleTableChange ниже
-    }, []),
+
   });
 
   // 8. Инициализируем функцию загрузки
@@ -123,13 +141,15 @@ export function useTableData<T>({
 
     loadServerData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoadingState, enableAutoLoad, ...dependencies]);
+  }, [isLoadingState, enableAutoLoad, navigationKey, ...dependencies]);
 
   // 11. Вспомогательная функция для сброса и перезагрузки
   const resetAndReload = useCallback(() => {
     tableState.handleReset();
-    loadServerData();
-  }, [tableState, loadServerData]);
+    const params: TableParams = { pagination: { page: 1, size: defaultPageSize }, sort: null, filters: {} };
+    saveState(params);
+    loadServerData(params);
+  }, [tableState, loadServerData, defaultPageSize, saveState]);
 
   // 12. Единый обработчик изменения параметров таблицы (передаётся в Table)
   const handleTableChange = useCallback(
@@ -165,6 +185,7 @@ export function useTableData<T>({
 
     // Персистентность
     savedState,
+    initialPage: navigationParams?.pagination.page || 1,
     isLoadingState,
     hasSavedState,
 

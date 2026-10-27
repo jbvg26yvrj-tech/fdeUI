@@ -5,6 +5,7 @@ import { MenuActions } from './MenuActions';
 
 interface TableBodyProps<T extends object> {
   columns: Column<T>[];
+  rowClassName?: (row: T) => string;
   data: T[];
   onRowClick?: (row: T) => void;
   onRowDoubleClick?: (row: T) => void;
@@ -25,6 +26,7 @@ export const TableBody = <T extends object>({
   minColumnWidth,
   emptyMessage,
   rowKey,
+  rowClassName,
 }: TableBodyProps<T>) => {
   return (
     <tbody className='fde-table-body'>
@@ -41,6 +43,7 @@ export const TableBody = <T extends object>({
               key={key}
               className={clsx(
                 'fde-table-row transition-colors duration-150',
+                rowClassName?.(row),
                 onRowDoubleClick && 'cursor-pointer',
                 isResizing && 'pointer-events-none',
               )}

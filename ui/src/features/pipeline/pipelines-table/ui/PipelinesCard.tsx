@@ -10,6 +10,8 @@ import {
 } from '../../../../shared/components/EntityCard';
 
 interface PipelineCardProps {
+  onNavigate?: () => void;
+  returnTo?: string;
   pipeline: SimplePipelineData;
   scheduleSummary?: ScheduleSummary;
   permissions: {
@@ -30,6 +32,8 @@ interface PipelineCardProps {
 
 export const PipelineCard: React.FC<PipelineCardProps> = ({
   pipeline,
+  onNavigate,
+  returnTo,
   scheduleSummary,
   permissions,
   onViewDetails,
@@ -100,5 +104,5 @@ export const PipelineCard: React.FC<PipelineCardProps> = ({
     },
   ];
 
-  return <EntityCard item={pipeline} fields={fields} actions={actions} titleKey='pipelineName' />;
+  return <EntityCard href={permissions?.canPipelineDetails ? `/pipelines/${pipeline.id}` : undefined} linkState={{ returnTo }} onNavigate={onNavigate} item={pipeline} fields={fields} actions={actions} titleKey='pipelineName' />;
 };

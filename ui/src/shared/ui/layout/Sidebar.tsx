@@ -23,7 +23,7 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
       name: 'Настройки',
       path: '/settings/ldap',
       adminOnly: true,
-      icon: <PermissionsIcon />,
+      icon: <SettingsIcon />,
     },
     {
       name: 'Пайплайны',
@@ -39,8 +39,21 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
       requiredPermissions: ['page.sessions'],
       icon: <SessionIcon />,
     },
-    { name: 'Аналитика', path: '/analytics', page: 'analytics', requiredPermissions: ['page.analytics'], icon: <PipelineIcon /> },
-    { name: 'Логи', adminOnly: true, path: '/logs', page: 'logs', requiredPermissions: ['page.logs'], icon: <SessionIcon /> },
+    {
+      name: 'Аналитика',
+      path: '/analytics',
+      page: 'analytics',
+      requiredPermissions: ['page.analytics'],
+      icon: <PipelineIcon />,
+    },
+    {
+      name: 'Логи',
+      adminOnly: true,
+      path: '/logs',
+      page: 'logs',
+      requiredPermissions: ['page.logs'],
+      icon: <SessionIcon />,
+    },
     {
       name: 'Права доступа',
       adminOnly: true,
@@ -52,8 +65,8 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
   ];
 
   const pagesWithPermissions = navigationItems
-    .filter((item) => item.page)
-    .map((item) => item.page as string);
+    .filter(item => item.page)
+    .map(item => item.page as string);
 
   const {
     isLoading: isLoadingContext,
@@ -73,9 +86,7 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
     if (isLoadingContext) {
       return false;
     }
-    return (
-      roles.includes('ADMIN') || hasAnyPermission(item.requiredPermissions)
-    );
+    return roles.includes('ADMIN') || hasAnyPermission(item.requiredPermissions);
   };
 
   const visibleItems = navigationItems.filter(hasAccess);
@@ -86,13 +97,11 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
   ];
 
   return (
-    <aside
-      className={clsx('fde-sidebar', collapsed && 'fde-sidebar-collapsed')}
-    >
+    <aside className={clsx('fde-sidebar', collapsed && 'fde-sidebar-collapsed')}>
       <nav aria-label='Основная навигация'>
-        {groups.map((group) => {
-          const items = group.paths.flatMap((path) =>
-            visibleItems.filter((item) => item.path === path),
+        {groups.map(group => {
+          const items = group.paths.flatMap(path =>
+            visibleItems.filter(item => item.path === path),
           );
           if (!items.length) return null;
           return (
@@ -101,7 +110,7 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
                 <p className='fde-nav-label'>{group.label}</p>
               )}
               <ul>
-                {items.map((item) => (
+                {items.map(item => (
                   <li key={item.path}>
                     <NavLink
                       to={item.path}
@@ -135,34 +144,10 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
 
 // Иконки (без изменений)
 const PipelineIcon = () => (
-  <svg
-    className='w-5 h-5'
-    fill='none'
-    viewBox='0 0 24 24'
-    stroke='currentColor'
-  >
-    <circle
-      cx='6'
-      cy='12'
-      r='2'
-      stroke='currentColor'
-      strokeWidth={2}
-      fill='none'
-    />
-    <circle
-      cx='18'
-      cy='12'
-      r='2'
-      stroke='currentColor'
-      strokeWidth={2}
-      fill='none'
-    />
-    <path
-      d='M8 12 L15 12'
-      stroke='currentColor'
-      strokeWidth={2}
-      strokeLinecap='round'
-    />
+  <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+    <circle cx='6' cy='12' r='2' stroke='currentColor' strokeWidth={2} fill='none' />
+    <circle cx='18' cy='12' r='2' stroke='currentColor' strokeWidth={2} fill='none' />
+    <path d='M8 12 L15 12' stroke='currentColor' strokeWidth={2} strokeLinecap='round' />
     <path
       d='M15 12 L16.5 10.5 M15 12 L16.5 13.5'
       stroke='currentColor'
@@ -174,12 +159,7 @@ const PipelineIcon = () => (
 );
 
 const SessionIcon = () => (
-  <svg
-    className='w-5 h-5'
-    fill='none'
-    viewBox='0 0 24 24'
-    stroke='currentColor'
-  >
+  <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
     <path
       strokeLinecap='round'
       strokeLinejoin='round'
@@ -190,17 +170,23 @@ const SessionIcon = () => (
 );
 
 const PermissionsIcon = () => (
-  <svg
-    className='w-5 h-5'
-    fill='none'
-    viewBox='0 0 24 24'
-    stroke='currentColor'
-  >
+  <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
     <path
       strokeLinecap='round'
       strokeLinejoin='round'
       strokeWidth={2}
       d='M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z'
     />
+  </svg>
+);
+
+const SettingsIcon = () => (
+  <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={1.8}>
+    <path
+      strokeLinecap='round'
+      strokeLinejoin='round'
+      d='m9.5 3-.6 2.3-1.6.9L5 5.6 2.5 10l1.7 1.7v1.8L2.5 15 5 19.4l2.3-.6 1.6.9.6 2.3h5l.6-2.3 1.6-.9 2.3.6 2.5-4.4-1.7-1.5v-1.8L21.5 10 19 5.6l-2.3.6-1.6-.9L14.5 3h-5Z'
+    />
+    <circle cx='12' cy='12.5' r='3' />
   </svg>
 );

@@ -1,0 +1,12 @@
+# UI usability implementation plan
+
+User-authorized seven browser comments: home link, settings icon, permissions organization/RLS explanation, updated light/dark palettes, pipeline navigation restoration/highlight, filtering usability, clickable session cards.
+
+Design: compact operations console. Main permissions tasks users/roles/assignments stay visible; secondary resource maintenance and optional RLS separate with plain explanations. Pipeline list keeps page/filter/sort/view/scroll when opening details and returning; identify last visited item. Common filters inline with removable chips, advanced controls collapsed. Accessible card navigation with nested controls independent. Palette preference requested asynchronously; default cool neutrals and teal if unanswered. Semantic success/warning/error colors preserved.
+
+- [x] Navigation task: preserve list state scoped by user/resource and tab; same-tab details with explicit back link; support browser Back, no unconditional page1; restore scroll after data loads and highlight last visited pipeline. Clickable session cards via accessible link/button avoiding nested control activation. Regression tests for remount/page2/filter/sort and keyboard/card menu isolation.
+- [x] Presentation task: FDE home link uses permission-aware landingPath, settings gear; reorganize permissions without losing assignment/RLS functionality; light/dark tokens plus contrast/keyboard states and responsive cards. No backend policy changes.
+- [x] Filter task: frequent fields immediately visible; advanced field selector for rest, meaningful active-value count/chips/removal, clear reset, debounce per field with no dropped updates or delayed reset resurrection.
+- [ ] Verify: whole UI Vitest/build/typecheck against existing11 errors; review navigation lifecycle, API filter contracts, contrast, permission behavior. Deploy with existing backup workflow. Browser verify list return position/highlight, session click, logo, permissions structure and both themes. Record limitations and evidence.
+
+Implementation verification: full UI suite 66/66 passed; after final advanced-filter fix, focused filter suite 8/8 passed (new regression added). Production build passed. Typecheck retains eight pre-existing diagnostics (previous baseline eleven), no new diagnostics. Independent review findings addressed: preserve controls during refresh, hydrate view by identity, preserve pending advanced fields, highlight card surface. Deployment/browser verification pending.

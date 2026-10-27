@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import '../ui/table/table.css';
 import { TableIcon, CardsIcon } from '../ui/table/lib/icons';
 
@@ -23,6 +23,8 @@ export const ViewModeLayout: React.FC<ViewModeLayoutProps> = ({
   className = '',
   headerActions,
 }) => {
+  const hasLoaded = useRef(false);
+  if (!isLoading) hasLoaded.current = true;
   return (
     <div className={`fde-view-layout min-w-0 space-y-3 ${className}`}>
       <div className='flex flex-wrap justify-between items-center gap-3'>
@@ -57,7 +59,7 @@ export const ViewModeLayout: React.FC<ViewModeLayoutProps> = ({
         </div>
       </div>
 
-      {isLoading ? (displayMode === 'table' ? skeletonTable : skeletonCards) : children()}
+      {isLoading && !hasLoaded.current ? (displayMode === 'table' ? skeletonTable : skeletonCards) : children()}
     </div>
   );
 };

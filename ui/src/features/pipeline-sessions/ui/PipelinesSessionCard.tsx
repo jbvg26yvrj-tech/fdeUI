@@ -5,6 +5,8 @@ import { TERMINAL_STATUSES } from '../types/types';
 import { EntityCard, type CardAction, type CardField } from '../../../shared/components/EntityCard';
 
 interface SessionCardProps {
+  onNavigate?: () => void;
+  returnTo?: string;
   session: PipelineSessionPageDto;
   permissions: {
     canSessionProgressOpen: boolean;
@@ -30,6 +32,8 @@ const getStatusColor = (statusCode: string): string => {
 
 export const SessionCard: React.FC<SessionCardProps> = ({
   session,
+  onNavigate,
+  returnTo,
   permissions,
   onViewProgress,
   onStop,
@@ -92,5 +96,5 @@ export const SessionCard: React.FC<SessionCardProps> = ({
     });
   }
 
-  return <EntityCard item={session} fields={fields} actions={actions} titleKey='pipelineName' />;
+  return <EntityCard href={permissions?.canSessionProgressOpen ? `/sessions/${session.id}` : undefined} linkState={{ returnTo }} onNavigate={onNavigate} item={session} fields={fields} actions={actions} titleKey='pipelineName' />;
 };

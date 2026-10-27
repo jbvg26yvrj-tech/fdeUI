@@ -1,12 +1,17 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Button } from '../../Button';
 import { Input } from '../../Input';
-import { Select } from '../../Select';
 import { getFilterTypeIcon } from './FilterTypeIcon';
 import { parseCronExpression } from '../lib/cron';
 import { CronEditor } from './CronEditor';
 import { DateTimeFilter } from './DateTimeFilter';
 import type { Column } from '../types/type';
+
+const hasValue = (value: any): boolean => {
+  if (value == null) return false;
+  if (typeof value === 'object') return hasValue(value.value);
+  return String(value).trim() !== '';
+};
 
 interface TableFiltersProps<T> {
   columns: Column<T>[];
@@ -38,50 +43,63 @@ export const TableFilters = <T,>({
   sortDropdown,
 }: TableFiltersProps<T>) => {
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(() => {
-    return Object.keys(initialFilters).some(key => initialFilters[key] !== '');
+    return Object.keys(initialFilters).some(key => hasValue(initialFilters[key]));
   });
   const [activeFilterFields, setActiveFilterFields] = useState<string[]>(() => {
-    return Object.keys(initialFilters).filter(key => initialFilters[key] !== '');
+    return Object.keys(initialFilters).filter(key => hasValue(initialFilters[key]));
   });
   const [isAddFilterPopupOpen, setIsAddFilterPopupOpen] = useState(false);
 
   const addFilterButtonRef = useRef<HTMLSpanElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
-  const filterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const filterTimeouts = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const latestOnFilterChange = useRef(onFilterChange);
+  latestOnFilterChange.current = onFilterChange;
+  const [resetVersion, setResetVersion] = useState(0);
+  const cancelPending = useCallback((field?: string) => {
+    if (field !== undefined) {
+      clearTimeout(filterTimeouts.current.get(field));
+      filterTimeouts.current.delete(field);
+    } else {
+      filterTimeouts.current.forEach(clearTimeout);
+      filterTimeouts.current.clear();
+    }
+  }, []);
 
-  // Equivalent saved filters must not discard a newly selected empty field.
+  // Applied values can be echoed while another selected field is still being edited.
   const initialActiveFieldsKey = JSON.stringify(
-    Object.keys(initialFilters).filter(key => initialFilters[key] !== '').sort(),
+    Object.keys(initialFilters)
+      .filter(key => hasValue(initialFilters[key]))
+      .sort(),
   );
   useEffect(() => {
     const newActiveFields: string[] = JSON.parse(initialActiveFieldsKey);
-    setActiveFilterFields(newActiveFields);
-    setIsFiltersExpanded(newActiveFields.length > 0);
+    setActiveFilterFields(selected => Array.from(new Set([...selected, ...newActiveFields])));
   }, [initialActiveFieldsKey]);
 
   const debouncedFilter = useCallback(
     (field: string, value: any) => {
-      if (filterTimeoutRef.current) {
-        clearTimeout(filterTimeoutRef.current);
-      }
-      filterTimeoutRef.current = setTimeout(() => {
-        onFilterChange(field, value);
-      }, 1000);
+      cancelPending(field);
+      filterTimeouts.current.set(
+        field,
+        setTimeout(() => {
+          filterTimeouts.current.delete(field);
+          latestOnFilterChange.current(field, value);
+        }, 1000),
+      );
     },
-    [onFilterChange],
+    [cancelPending],
   );
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLInputElement>, field: string, value: any) => {
       if (event.key === 'Enter') {
-        if (filterTimeoutRef.current) {
-          clearTimeout(filterTimeoutRef.current);
-          filterTimeoutRef.current = null;
-        }
-        onFilterChange(field, value);
+        event.preventDefault();
+        cancelPending(field);
+        latestOnFilterChange.current(field, value);
       }
     },
-    [onFilterChange],
+    [cancelPending],
   );
 
   const handleInputChange = useCallback(
@@ -119,15 +137,11 @@ export const TableFilters = <T,>({
     (field: string) => {
       setActiveFilterFields(prev => prev.filter(f => f !== field));
 
-      const newInputValues = { ...inputValues };
-      delete newInputValues[field];
-      Object.keys(newInputValues).forEach(key => {
-        onInputValueChange(key, newInputValues[key]);
-      });
-
+      cancelPending(field);
+      onInputValueChange(field, '');
       onFilterChange(field, '');
     },
-    [inputValues, onFilterChange, onInputValueChange],
+    [cancelPending, onFilterChange, onInputValueChange],
   );
 
   useEffect(() => {
@@ -145,23 +159,40 @@ export const TableFilters = <T,>({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (filterTimeoutRef.current) {
-        clearTimeout(filterTimeoutRef.current);
-      }
-    };
-  }, []);
+  useEffect(() => () => cancelPending(), [cancelPending]);
 
   const filterableColumns = columns.filter(column => column.filterable === true);
-
+  const keys = filterableColumns.map(column => String(column.key));
+  const preferred =
+    keys.includes('clientFrom') && keys.includes('clientTo')
+      ? ['pipelineName', 'id', 'clientFrom', 'clientTo', 'primaryDatacenter']
+      : keys.includes('pipelineId')
+        ? ['id', 'pipelineId', 'status']
+        : [];
+  const quickFields = preferred.filter(field => keys.includes(field));
+  const advancedFields = activeFilterFields.filter(field => !quickFields.includes(field));
   const availableFilterFields = filterableColumns
-    .filter(column => !activeFilterFields.includes(column.key as string))
+    .filter(
+      column =>
+        !quickFields.includes(String(column.key)) &&
+        !activeFilterFields.includes(String(column.key)),
+    )
     .map(column => ({
-      value: column.key as string,
+      value: String(column.key),
       label: column.title,
       type: column.filterType || 'text',
     }));
+  const appliedColumns = filterableColumns.filter(column => hasValue(filters[String(column.key)]));
+  const hasDrafts = Object.values(inputValues).some(hasValue);
+  const resetFilters = () => {
+    cancelPending();
+    setResetVersion(version => version + 1);
+    setActiveFilterFields([]);
+    setIsFiltersExpanded(false);
+    setIsAddFilterPopupOpen(false);
+    Object.keys(inputValues).forEach(field => onInputValueChange(field, ''));
+    onReset?.();
+  };
 
   const CronFilterWrapper: React.FC<{ field: string }> = ({ field }) => {
     const inputRef = useRef<HTMLDivElement>(null);
@@ -207,6 +238,7 @@ export const TableFilters = <T,>({
             <input
               type='checkbox'
               id={`filter-checkbox-${field}`}
+              aria-label={column.title}
               checked={filters[field] === 'true'}
               onChange={e => handleCheckboxChange(field, e.target.checked)}
               className='h-3 w-3 text-blue-600 dark:text-blue-400 rounded border-gray-300 dark:border-gray-600 focus:ring-blue-500 dark:focus:ring-blue-400'
@@ -222,14 +254,20 @@ export const TableFilters = <T,>({
 
       case 'select':
         return (
-          <Select
-            options={column.filterOptions || []}
-            placeholder={`Фильтр...`}
+          <select
+            id={`filter-${field}`}
+            aria-label={column.title}
             value={inputValues[field] || ''}
-            onChange={e => handleInputChange(field, (e.target as HTMLSelectElement).value)}
-            inputSize='sm'
-            className='w-full text-xs'
-          />
+            onChange={e => handleInputChange(field, e.target.value)}
+            className='fde-input w-full rounded border px-3 py-1 text-sm'
+          >
+            <option value=''>Все</option>
+            {(column.filterOptions || []).map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         );
 
       case 'datetime':
@@ -250,7 +288,9 @@ export const TableFilters = <T,>({
       default:
         return (
           <Input
-            placeholder={`Фильтр...`}
+            id={`filter-${field}`}
+            aria-label={column.title}
+            placeholder={field === 'id' || field === 'pipelineId' ? 'UUID' : column.title}
             value={inputValues[field] || ''}
             onChange={e => handleInputChange(field, e.target.value)}
             onKeyDown={e => handleKeyDown(e, field, (e.target as HTMLInputElement).value)}
@@ -261,214 +301,157 @@ export const TableFilters = <T,>({
     }
   };
 
-  return (
-    <div className='fde-table-filters p-4'>
-      {/* Адаптивная строка с заголовком и кнопками */}
-      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
-        {/* Левая часть: заголовок и индикатор */}
-        <div className='flex items-center space-x-3 flex-wrap'>
-          <h1 className='fde-table-title text-lg font-semibold'>{caption}</h1>
-          <div className='text-sm text-gray-600 dark:text-gray-400'>
-            {hasActiveState && (
-              <span className='text-blue-600 dark:text-blue-400'>Фильтры / сортировка</span>
-            )}
-          </div>
-        </div>
-
-        {/* Правая часть: группа кнопок с возможностью переноса */}
-        <div className='flex flex-wrap items-center gap-2'>
-          {(filterableColumns.length > 0 || activeFilterFields.length > 0) && (
+  const renderField = (field: string, advanced = false) => {
+    const column = filterableColumns.find(column => String(column.key) === field);
+    if (!column) return null;
+    return (
+      <div
+        key={`${field}-${resetVersion}`}
+        className='fde-table-filter-field min-w-0 rounded-md p-2'
+      >
+        <div className='flex items-center justify-between mb-1'>
+          <label htmlFor={`filter-${field}`} className='text-xs font-medium'>
+            {column.title}
+          </label>
+          {advanced && (
             <Button
-              variant='outlined'
+              type='button'
+              variant='text'
               size='sm'
-              onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-              aria-expanded={isFiltersExpanded}
-              title={isFiltersExpanded ? 'Скрыть фильтры' : 'Показать фильтры'}
-              icon={
-                <svg
-                  className={`w-4 h-4 transition-transform ${isFiltersExpanded ? 'rotate-180' : ''}`}
-                  fill='none'
-                  stroke='currentColor'
-                  viewBox='0 0 24 24'
-                >
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M19 9l-7 7-7-7'
-                  />
-                </svg>
-              }
+              aria-label={`Удалить фильтр: ${column.title}`}
+              onClick={() => removeFilterField(field)}
             >
-              Фильтры
+              ×
             </Button>
           )}
+        </div>
+        {renderFilterInput(column, field)}
+      </div>
+    );
+  };
 
+  return (
+    <div className='fde-table-filters p-4'>
+      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+        <h1 className='fde-table-title text-lg font-semibold'>{caption}</h1>
+        <div className='flex flex-wrap items-center gap-2'>
+          {advancedFields.length > 0 && (
+            <Button
+              type='button'
+              variant='outlined'
+              size='sm'
+              aria-expanded={isFiltersExpanded}
+              onClick={() => setIsFiltersExpanded(value => !value)}
+            >
+              Дополнительные фильтры
+            </Button>
+          )}
           {availableFilterFields.length > 0 && (
             <div className='relative'>
               <span ref={addFilterButtonRef}>
-                {/* Кнопка "Добавить фильтр" */}
                 <Button
+                  type='button'
                   variant='outlined'
                   size='sm'
-                  onClick={() => setIsAddFilterPopupOpen(!isAddFilterPopupOpen)}
-                  icon={
-                    <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                      <path
-                        strokeLinecap='round'
-                        strokeLinejoin='round'
-                        strokeWidth={1.5}
-                        d='M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.586V4z'
-                      />
-                    </svg>
-                  }
+                  aria-expanded={isAddFilterPopupOpen}
+                  onClick={() => setIsAddFilterPopupOpen(value => !value)}
                 >
                   Добавить фильтр
                 </Button>
               </span>
-
-              {isAddFilterPopupOpen && availableFilterFields.length > 0 && (
+              {isAddFilterPopupOpen && (
                 <div
                   ref={popupRef}
-                  className='absolute mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-48 max-w-[90vw] overflow-x-auto py-1'
-                  style={{ left: '50%', transform: 'translateX(-50%)' }}
+                  onKeyDown={event => {
+                    if (event.key === 'Escape') {
+                      setIsAddFilterPopupOpen(false);
+                      addFilterButtonRef.current?.querySelector('button')?.focus();
+                    }
+                  }}
+                  className='absolute right-0 mt-1 z-50 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg min-w-48 max-w-[90vw] max-h-80 overflow-auto py-1'
                 >
                   {availableFilterFields.map(field => (
                     <button
+                      type='button'
                       key={field.value}
-                      className='w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center space-x-3 whitespace-nowrap'
                       onClick={() => addFilterField(field.value)}
+                      className='w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3'
                     >
-                      <span className='text-gray-500 dark:text-gray-400'>
-                        {getFilterTypeIcon(field.type)}
-                      </span>
-                      <span className='flex-1 text-sm text-gray-700 dark:text-gray-300'>
-                        {field.label}
-                      </span>
+                      <span aria-hidden='true'>{getFilterTypeIcon(field.type)}</span>
+                      {field.label}
                     </button>
                   ))}
                 </div>
               )}
             </div>
           )}
-
           {sortDropdown}
-
-          {/* Кнопка "Сбросить" теперь всегда видна, но отключается при отсутствии активных фильтров/сортировки */}
           {showResetButton && onReset && (
             <Button
+              type='button'
               variant='outlined'
               size='sm'
-              onClick={() => {
-                setActiveFilterFields([]);
-                onReset();
-              }}
-              disabled={!hasActiveState}
-              icon={
-                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                  {/* Иконка фильтра (воронка) */}
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={1.5}
-                    d='M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.586V4z'
-                  />
-                  {/* Крестик в правом нижнем углу */}
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={1.8}
-                    d='M18 18 L22 22 M22 18 L18 22'
-                  />
-                </svg>
+              onClick={resetFilters}
+              disabled={
+                !hasActiveState &&
+                !hasDrafts &&
+                appliedColumns.length === 0 &&
+                advancedFields.length === 0
               }
-              title='Сбросить фильтры'
               aria-label='Сбросить фильтры'
-            />
+            >
+              Сбросить
+            </Button>
           )}
         </div>
       </div>
-
-      {/* Область активных фильтров (без изменений) */}
-      {(filterableColumns.length > 0 || activeFilterFields.length > 0) && (
-        <div
-          className={`overflow-hidden transition-all duration-300 ${
-            isFiltersExpanded ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'
-          }`}
-        >
-          <div className='flex justify-between items-center mb-3 pt-3'>
-            <h4 className='text-sm font-medium text-gray-700 dark:text-gray-300'>
-              Фильтрация данных{' '}
-              {activeFilterFields.length > 0 && `(${activeFilterFields.length} активных)`}
-            </h4>
+      {quickFields.length > 0 && (
+        <div className='fde-quick-filters grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-2 mt-3'>
+          {quickFields.map(field => renderField(field))}
+        </div>
+      )}
+      {filterableColumns.length > 0 && (
+        <p className='fde-filter-help text-xs mt-2'>
+          Фильтры применяются автоматически. Enter — применить сразу. Дополнительные поля —
+          «Добавить фильтр».
+        </p>
+      )}
+      {appliedColumns.length > 0 && (
+        <div className='mt-3'>
+          <p className='text-xs mb-2' aria-live='polite'>
+            Активные фильтры: {appliedColumns.length}
+          </p>
+          <div className='fde-filter-chips flex flex-wrap gap-2'>
+            {appliedColumns.map(column => {
+              const field = String(column.key);
+              const value = filters[field];
+              const display =
+                typeof value === 'object'
+                  ? `${value.operator || ''} ${value.value}`
+                  : column.filterOptions?.find(option => option.value === String(value))?.label ||
+                    (column.filterType === 'checkbox'
+                      ? String(value) === 'true'
+                        ? 'Да'
+                        : 'Нет'
+                      : String(value));
+              return (
+                <button
+                  type='button'
+                  key={field}
+                  className='fde-filter-chip'
+                  aria-label={`Убрать фильтр: ${column.title}`}
+                  onClick={() => removeFilterField(field)}
+                >
+                  {column.title}: {display} <span aria-hidden='true'>×</span>
+                </button>
+              );
+            })}
           </div>
-
-          {activeFilterFields.length > 0 ? (
-            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-2'>
-              {activeFilterFields.map(field => {
-                const column = columns.find(col => col.key === field);
-                if (!column) return null;
-
-                return (
-                  <div
-                    key={field}
-                    className='fde-table-filter-field min-w-0 relative group rounded-md p-2 min-h-[64px]'
-                  >
-                    <div className='flex items-center justify-between mb-1'>
-                      <label
-                        title={column.title}
-                        className='block text-xs font-medium text-gray-600 dark:text-gray-400 truncate'
-                      >
-                        {column.title}
-                      </label>
-                      <Button
-                        variant='text'
-                        size='sm'
-                        onClick={() => removeFilterField(field)}
-                        title={`Удалить фильтр: ${column.title}`}
-                        aria-label={`Удалить фильтр: ${column.title}`}
-                        className='opacity-70 hover:opacity-100 transition-opacity p-1'
-                        icon={
-                          <svg
-                            className='w-3 h-3'
-                            fill='none'
-                            stroke='currentColor'
-                            viewBox='0 0 24 24'
-                          >
-                            <path
-                              strokeLinecap='round'
-                              strokeLinejoin='round'
-                              strokeWidth={2}
-                              d='M6 18L18 6M6 6l12 12'
-                            />
-                          </svg>
-                        }
-                      />
-                    </div>
-
-                    {renderFilterInput(column, field)}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className='fde-table-filter-empty flex items-center gap-2 py-2 text-sm'>
-              <svg
-                className='w-4 h-4 shrink-0'
-                fill='none'
-                stroke='currentColor'
-                viewBox='0 0 24 24'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.207A1 1 0 013 6.586V4z'
-                />
-              </svg>
-              <p>Нет активных фильтров</p>
-            </div>
-          )}
+        </div>
+      )}
+      {isFiltersExpanded && advancedFields.length > 0 && (
+        <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 mt-3'>
+          {advancedFields.map(field => renderField(field, true))}
         </div>
       )}
     </div>

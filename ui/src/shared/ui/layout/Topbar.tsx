@@ -1,9 +1,12 @@
 import { useState, type Ref } from 'react';
 import { useAuth } from '../../../context/AuthContext';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authApi } from '../../../features/auth/api/authApi';
 import { useTheme } from '../../../context/ThemeContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
+
+import { useUserContext } from '../../hooks/useUserContext';
+import { landingPath } from '../../lib/access';
 
 interface TopbarProps {
   onToggleSidebar: () => void;
@@ -11,25 +14,27 @@ interface TopbarProps {
   toggleRef?: Ref<HTMLButtonElement>;
 }
 
-export const Topbar = ({
-  onToggleSidebar,
-  navigationExpanded,
-  toggleRef,
-}: TopbarProps) => {
+export const Topbar = ({ onToggleSidebar, navigationExpanded, toggleRef }: TopbarProps) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const { permissions = [], roles = [], isLoading } = useUserContext();
+  const homePath = isLoading ? '/about' : landingPath(permissions, roles);
   const { pathname } = useLocation();
-  const section = pathname.startsWith('/analytics') ? 'Аналитика' : pathname.startsWith('/logs') ? 'Логи' : pathname.startsWith('/pipelines')
-    ? 'Пайплайны'
-    : pathname.startsWith('/sessions')
-      ? 'Сессии'
-      : pathname.startsWith('/permissions')
-        ? 'Права доступа'
-        : pathname.startsWith('/settings')
-          ? 'Настройки'
-          : 'О системе';
+  const section = pathname.startsWith('/analytics')
+    ? 'Аналитика'
+    : pathname.startsWith('/logs')
+      ? 'Логи'
+      : pathname.startsWith('/pipelines')
+        ? 'Пайплайны'
+        : pathname.startsWith('/sessions')
+          ? 'Сессии'
+          : pathname.startsWith('/permissions')
+            ? 'Права доступа'
+            : pathname.startsWith('/settings')
+              ? 'Настройки'
+              : 'О системе';
 
   const handleLogout = async () => {
     try {
@@ -60,9 +65,7 @@ export const Topbar = ({
               onClick={onToggleSidebar}
               className='fde-icon-button'
               ref={toggleRef}
-              aria-label={
-                navigationExpanded ? 'Свернуть навигацию' : 'Открыть навигацию'
-              }
+              aria-label={navigationExpanded ? 'Свернуть навигацию' : 'Открыть навигацию'}
               aria-expanded={navigationExpanded}
               aria-controls='fde-navigation'
             >
@@ -81,12 +84,12 @@ export const Topbar = ({
               </svg>
             </button>
 
-            <div className='flex items-center space-x-2'>
+            <Link to={homePath} className='fde-home-link' aria-label='FDE — на главную'>
               <div className='fde-brand-mark'>
                 <span className='text-white font-bold text-lg'>F</span>
               </div>
               <span className='fde-brand-name'>FDE</span>
-            </div>
+            </Link>
             <span className='fde-section-name'>{section}</span>
           </div>
 
@@ -95,11 +98,7 @@ export const Topbar = ({
             <button
               onClick={toggleTheme}
               className='fde-icon-button'
-              aria-label={
-                theme === 'light'
-                  ? 'Включить тёмную тему'
-                  : 'Включить светлую тему'
-              }
+              aria-label={theme === 'light' ? 'Включить тёмную тему' : 'Включить светлую тему'}
             >
               {theme === 'light' ? (
                 <svg
@@ -136,17 +135,14 @@ export const Topbar = ({
                     {user.login}
                   </span>
                 </div>
-                <button
-                  onClick={handleLogoutClick}
-                  className='fde-logout-button'
-                >
+                <button onClick={handleLogoutClick} className='fde-logout-button'>
                   Выйти
                 </button>
               </>
             ) : (
               <button
                 onClick={handleLogin}
-                className='bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors'
+                className='fde-button fde-button--primary px-4 py-2 text-sm'
               >
                 Войти
               </button>

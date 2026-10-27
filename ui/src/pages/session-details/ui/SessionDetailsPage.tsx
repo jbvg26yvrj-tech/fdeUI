@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { pipelineSessionsApi } from '../../../features/pipeline-sessions/api/pipelineSessionsApi';
 import type {
   PipelineSessionDetailsDto,
@@ -150,7 +150,9 @@ const TaskSection = ({ task }: { task: TaskSessionDto }) => {
 };
 
 const SessionDetailsContent = ({ id }: { id: string }) => {
-  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.returnTo;
+  const returnTo = typeof from === "string" && /^\/sessions(?:\?|$)/.test(from) ? from : "/sessions";
   const [data, setData] = useState<PipelineSessionDetailsDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -195,8 +197,8 @@ const SessionDetailsContent = ({ id }: { id: string }) => {
   return (
     <div className='space-y-6'>
       {/* Back button */}
-      <button
-        onClick={() => navigate('/sessions')}
+      <Link
+        to={returnTo}
         className='flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors'
       >
         <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
@@ -208,7 +210,7 @@ const SessionDetailsContent = ({ id }: { id: string }) => {
           />
         </svg>
         Назад к сессиям
-      </button>
+      </Link>
 
       {/* Session header */}
       <div className='bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6'>

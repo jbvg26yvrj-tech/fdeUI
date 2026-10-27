@@ -1,8 +1,9 @@
-import { useState, useCallback, useMemo, useRef } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import type { TableMeta, TableParams } from '../types/type';
 
 interface UseTableStateProps {
   initialPageSize?: number;
+  initialPage?: number;
   serverMeta?: TableMeta;
   onTableChange?: (params: TableParams) => void;
   initialFilters?: Record<string, any>;
@@ -14,19 +15,35 @@ interface UseTableStateProps {
 
 export const useTableState = ({
   initialPageSize = 10,
+  initialPage,
   serverMeta,
   onTableChange,
   initialFilters = {},
   initialSort = null,
 }: UseTableStateProps) => {
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(initialPage ?? (serverMeta ? serverMeta.pagination.page + 1 : 1));
   const [sortField, setSortField] = useState(initialSort?.field || '');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>(initialSort?.order || 'asc');
   const [filters, setFilters] = useState<Record<string, any>>(initialFilters);
   const [inputValues, setInputValues] = useState<Record<string, any>>(initialFilters);
 
   // Флаг для отслеживания, была ли уже применена начальная инициализация
-  const hasInitializedRef = useRef(false);
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
+  const initialSignature = JSON.stringify([initialFilters, initialSort, initialPage]);
+  useEffect(() => {
+    // A parent echoing our applied filter must not replace drafts in other fields.
+    if (JSON.stringify(filtersRef.current) !== JSON.stringify(initialFilters)) {
+      filtersRef.current = initialFilters;
+      setFilters(initialFilters);
+      setInputValues(initialFilters);
+    }
+    setSortField(initialSort?.field || '');
+    setSortDirection(initialSort?.order || 'asc');
+    setCurrentPage(initialPage ?? (serverMeta ? serverMeta.pagination.page + 1 : 1));
+    // Synchronize when async persisted state arrives, not on every equivalent object.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSignature]);
 
   const isServerMode = true;
 
@@ -55,7 +72,7 @@ export const useTableState = ({
           size: initialPageSize,
         },
         sort: sortField ? { field: sortField, order: sortDirection } : null,
-        filters: { ...filters },
+        filters: { ...filtersRef.current },
       };
       return { ...baseParams, ...updates };
     },
@@ -96,7 +113,8 @@ export const useTableState = ({
 
   const handleFilterChange = useCallback(
     (field: string, value: any) => {
-      const newFilters = { ...filters, [field]: value };
+      const newFilters = { ...filtersRef.current, [field]: value };
+      filtersRef.current = newFilters;
 
       onTableChange?.(
         getTableParams({
@@ -114,6 +132,7 @@ export const useTableState = ({
 
   const handleReset = useCallback(() => {
     const resetFilters = {};
+    filtersRef.current = resetFilters;
     onTableChange?.(
       getTableParams({
         pagination: { ...meta.pagination, page: 1 },
@@ -127,14 +146,6 @@ export const useTableState = ({
     setInputValues({});
     setCurrentPage(1);
   }, [onTableChange, meta.pagination, getTableParams]);
-
-  // Применяем initialFilters только один раз: либо при первом рендере, либо при первой загрузке непустых фильтров
-  if (!hasInitializedRef.current && Object.keys(initialFilters).length > 0) {
-    setFilters(initialFilters);
-    setInputValues(initialFilters);
-    setCurrentPage(1);
-    hasInitializedRef.current = true;
-  }
 
   return {
     // State
