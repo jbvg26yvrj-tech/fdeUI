@@ -49,12 +49,15 @@ export const TableFilters = <T,>({
   const popupRef = useRef<HTMLDivElement>(null);
   const filterTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Синхронизация с пропом initialFilters при его изменении
+  // Equivalent saved filters must not discard a newly selected empty field.
+  const initialActiveFieldsKey = JSON.stringify(
+    Object.keys(initialFilters).filter(key => initialFilters[key] !== '').sort(),
+  );
   useEffect(() => {
-    const newActiveFields = Object.keys(initialFilters).filter(key => initialFilters[key] !== '');
+    const newActiveFields: string[] = JSON.parse(initialActiveFieldsKey);
     setActiveFilterFields(newActiveFields);
     setIsFiltersExpanded(newActiveFields.length > 0);
-  }, [initialFilters]);
+  }, [initialActiveFieldsKey]);
 
   const debouncedFilter = useCallback(
     (field: string, value: any) => {
