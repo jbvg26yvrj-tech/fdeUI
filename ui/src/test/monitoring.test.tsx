@@ -56,7 +56,8 @@ describe('monitoring contracts', () => {
     expect(canAccessPath('/analytics', [], [])).toBe(false);
     expect(canAccessPath('/logs', [], ['DWH'])).toBe(false);
     expect(canAccessPath('/analytics/pipelines/id', ['page.analytics'], [])).toBe(true);
-    expect(canAccessPath('/logs', ['page.logs'], [])).toBe(true);
+    expect(canAccessPath('/logs', ['page.logs'], [])).toBe(false);
+    expect(canAccessPath('/logs', [], ['ADMIN'])).toBe(true);
   });
   it('ignores a stale response and preserves last success on failure', async () => {
     let resolveFirst!: (n: number) => void;

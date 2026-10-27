@@ -14,7 +14,8 @@ import { TableWithStates } from '../../../../shared/ui/table/components/TableSta
 import { SYS_TABLE_RESOURCES } from '../../../../shared/resources';
 import { useTableData } from '../../../../shared/ui/table/hooks/useTableData';
 import { ApiError } from '../../../../shared/api/ApiError';
-import { apiClient } from '../../../../shared/api/apiClient';
+import { loadScheduleSummaries, type ScheduleSummary } from '../../api/scheduleSummaries';
+import { ScheduleSummaryLabel } from '../../components/ScheduleSummaryLabel';
 import { userContextApi } from '../../../../shared/api/userContextApi';
 import { SkeletonTable } from '../../../../shared/components/SkeletonTable';
 import { SkeletonCards } from './SkeletonCards';
@@ -70,7 +71,7 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
   });
 
   // Schedule status per pipeline
-  const [scheduleMap, setScheduleMap] = useState<Record<string, string | null>>({});
+  const [scheduleMap, setScheduleMap] = useState<Record<string, ScheduleSummary>>({});
   const scheduleAbortRef = useRef<AbortController | null>(null);
 
   // Datacenter bulk change — admin check for button visibility
@@ -117,34 +118,17 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
 
   // Load schedule status for each visible pipeline
   useEffect(() => {
-    if (!data || data.length === 0) return;
-
     scheduleAbortRef.current?.abort();
     const controller = new AbortController();
     scheduleAbortRef.current = controller;
-
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const loadSchedules = async () => {
-      const map: Record<string, string | null> = {};
-      await Promise.all(
-        data.map(async p => {
-          if (controller.signal.aborted) return;
-          try {
-            const schedule = await apiClient.get<{ cronExpression: string }>(`/schedules/${p.id}`);
-            map[p.id] = schedule.cronExpression;
-          } catch {
-            map[p.id] = null;
-          }
-        }),
-      );
-      if (!controller.signal.aborted) {
-        setScheduleMap(map);
-      }
-    };
-
-    loadSchedules();
+    setScheduleMap({});
+    if (permissions?.canScheduleGet && data.length) {
+      void loadScheduleSummaries(data.map(p => p.id), controller.signal).then(map => {
+        if (!controller.signal.aborted) setScheduleMap(map);
+      });
+    }
     return () => controller.abort();
-  }, [data]);
+  }, [data, permissions?.canScheduleGet]);
 
   // --- CRUD handlers ---
 
@@ -180,6 +164,7 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
   const refreshAfterCreate = useRef(false);
 
   const handleFormSave = async (values: PipelineFormSaveValues): Promise<PipelineData | undefined> => {
+    if (!isAdmin) return;
     setActionLoading(true);
     try {
       const tasksPayload = values.tasks.map(t => ({
@@ -222,7 +207,7 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
   };
 
   const handleConfirmDelete = async () => {
-    if (!deleteModalState.pipeline) return;
+    if (!isAdmin || !deleteModalState.pipeline) return;
     try {
       await pipelinesCrudApi.deletePipeline(deleteModalState.pipeline.id);
       toast.success('Пайплайн успешно удален');
@@ -237,7 +222,7 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
   };
 
   const handleConfirmTrigger = async () => {
-    if (!triggerModalState.pipeline) return;
+    if (!isAdmin || !triggerModalState.pipeline) return;
     try {
       const result = await triggersApi.manualTrigger(triggerModalState.pipeline.id);
       toast.success(`Пайплайн запущен. Сессия: ${result.sessionId}`);
@@ -274,25 +259,7 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
       filterable: false,
       width: 140,
       render: (_value: unknown, row: SimplePipelineData) => {
-        const cron = scheduleMap[row.id];
-        if (cron === undefined) {
-          return <span className='text-xs text-gray-400 dark:text-gray-500'>...</span>;
-        }
-        if (cron === null) {
-          return (
-            <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'>
-              Не задано
-            </span>
-          );
-        }
-        return (
-          <span
-            className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-            title={cron}
-          >
-            {cron}
-          </span>
-        );
+        return <ScheduleSummaryLabel summary={scheduleMap[row.id]} />;
       },
     },
     createDateTimeColumn('createdAt', 'Создан', { width: 100 }),
@@ -337,7 +304,7 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
     (pipeline: SimplePipelineData) => (
       <PipelineCard
         pipeline={pipeline}
-        scheduleCron={scheduleMap[pipeline.id]}
+        scheduleSummary={scheduleMap[pipeline.id]}
         permissions={permissions}
         onViewDetails={handleViewPipelineDetails}
         onViewSessions={handleViewPipelineSessions}

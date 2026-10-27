@@ -61,9 +61,9 @@ describe('LDAP access UI', () => {
   it('submits explicit normalized client codes from the role form', () => {
     const save = vi.fn();
     render(<RoleFormModal isOpen onClose={() => {}} onSave={save} mode='create' />);
-    fireEvent.change(screen.getByLabelText(/Код/), { target: { value: 'CUSTOM' } });
+    fireEvent.change(screen.getByPlaceholderText('DWH_VIEWER'), { target: { value: 'CUSTOM' } });
     fireEvent.change(screen.getByLabelText(/Название/), { target: { value: 'Custom' } });
-    fireEvent.change(screen.getByLabelText('Доступные клиенты'), {
+    fireEvent.change(screen.getByLabelText('Коды клиентов — доступ только для просмотра'), {
       target: { value: ' dwh, PC, dwh ' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Создать|Сохранить/ }));

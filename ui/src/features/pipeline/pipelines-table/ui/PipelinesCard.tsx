@@ -1,4 +1,6 @@
 import React from 'react';
+import type { ScheduleSummary } from '../../api/scheduleSummaries';
+import { ScheduleSummaryLabel } from '../../components/ScheduleSummaryLabel';
 
 import type { SimplePipelineData } from '../../types/Types';
 import {
@@ -9,7 +11,7 @@ import {
 
 interface PipelineCardProps {
   pipeline: SimplePipelineData;
-  scheduleCron?: string | null;
+  scheduleSummary?: ScheduleSummary;
   permissions: {
     canPipelineDetails: boolean;
     canPipelineSessions: boolean;
@@ -28,7 +30,7 @@ interface PipelineCardProps {
 
 export const PipelineCard: React.FC<PipelineCardProps> = ({
   pipeline,
-  scheduleCron,
+  scheduleSummary,
   permissions,
   onViewDetails,
   onViewSessions,
@@ -51,16 +53,7 @@ export const PipelineCard: React.FC<PipelineCardProps> = ({
     {
       key: 'schedule' as keyof SimplePipelineData,
       label: 'Расписание',
-      render: () =>
-        scheduleCron ? (
-          <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'>
-            {scheduleCron}
-          </span>
-        ) : (
-          <span className='inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400'>
-            Не задано
-          </span>
-        ),
+      render: () => <ScheduleSummaryLabel summary={scheduleSummary} />,
     },
     {
       key: 'createdAt',

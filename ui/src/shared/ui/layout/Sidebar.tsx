@@ -40,9 +40,10 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
       icon: <SessionIcon />,
     },
     { name: 'Аналитика', path: '/analytics', page: 'analytics', requiredPermissions: ['page.analytics'], icon: <PipelineIcon /> },
-    { name: 'Логи', path: '/logs', page: 'logs', requiredPermissions: ['page.logs'], icon: <SessionIcon /> },
+    { name: 'Логи', adminOnly: true, path: '/logs', page: 'logs', requiredPermissions: ['page.logs'], icon: <SessionIcon /> },
     {
       name: 'Права доступа',
+      adminOnly: true,
       path: '/permissions',
       page: 'permissions',
       requiredPermissions: ['page.permissions'],

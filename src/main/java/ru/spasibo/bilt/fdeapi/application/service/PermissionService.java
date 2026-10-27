@@ -12,7 +12,6 @@ import ru.spasibo.bilt.fdeapi.domain.port.PermissionPort;
 import ru.spasibo.bilt.fdeapi.domain.port.ResourcePort;
 import ru.spasibo.bilt.fdeapi.domain.port.RolePort;
 
-import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
 
@@ -22,7 +21,6 @@ import java.util.UUID;
  * без зависимости от слоя персистентности.
  * <p>
  * Переработан для использования доменных портов вместо JPA-репозиториев.
- * Использует пакетные запросы (O(2) вместо O(N)).
  * Добавлен метод {@link #requireAdmin(UserPrincipal)} для авторизации администратора.
  * Обобщённые сообщения об ошибках (без утечки UUID).
  * Использует {@link CurrentUserPort} вместо прямого обращения к SecurityContextHolder.
@@ -33,29 +31,39 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class PermissionService implements PermissionPort {
 
+    private static final Set<String> OWN_RESOURCES = Set.of("api.user-settings.manage", "api.user-context.get");
+    private static final Set<String> CLIENT_READ_RESOURCES = Set.of(
+            "page.pipelines", "page.sessions", "page.analytics", "table.pipelines", "table.sessions",
+            "api.pipelines.list", "api.pipelines.get", "api.sessions.list", "api.sessions.get",
+            "api.schedules.get", "api.analytics.read");
+
     private final RolePort rolePort;
     private final ResourcePort resourcePort;
     private final CurrentUserPort currentUserPort;
 
     /**
      * Возвращает права доступа пользователя (роли и ресурсы).
-     * Использует пакетные запросы (O(2) вместо O(N)).
-     *
+         *
      * @param userId UUID пользователя
      * @return права доступа пользователя: коды ролей и коды ресурсов
      */
     @Override
     public UserPermissions getUserPermissions(UUID userId) {
-        Set<UUID> roleIds = rolePort.findRoleIdsByUserId(userId);
-
-        if (roleIds.isEmpty()) {
-            return new UserPermissions(Collections.emptySet(), Collections.emptySet());
-        }
-
         Set<String> roleCodes = rolePort.findRoleCodesByUserId(userId);
-        Set<String> resourceCodes = resourcePort.findResourceCodesByRoleIds(roleIds);
-
-        return new UserPermissions(roleCodes, resourceCodes);
+        if (roleCodes.contains("ADMIN")) {
+            Set<String> resources = new java.util.HashSet<>(resourcePort.findAllCodes());
+            resources.addAll(CLIENT_READ_RESOURCES);
+            resources.addAll(OWN_RESOURCES);
+            return new UserPermissions(roleCodes, Set.copyOf(resources));
+        }
+        // Legacy resource grants never elevate a client role above scoped read-only access.
+        boolean scoped = rolePort.findRoleIdsByUserId(userId).stream()
+                .map(rolePort::findById).flatMap(java.util.Optional::stream)
+                .flatMap(role -> role.clientCodes().stream())
+                .anyMatch(code -> !AccessScopeService.normalize(code).isEmpty());
+        Set<String> resources = new java.util.HashSet<>(OWN_RESOURCES);
+        if (scoped) resources.addAll(CLIENT_READ_RESOURCES);
+        return new UserPermissions(roleCodes, Set.copyOf(resources));
     }
 
     /**
@@ -67,12 +75,7 @@ public class PermissionService implements PermissionPort {
      */
     @Override
     public boolean hasPermission(UUID userId, String resourceCode) {
-        Set<UUID> roleIds = rolePort.findRoleIdsByUserId(userId);
-        if (roleIds.isEmpty()) {
-            return false;
-        }
-        Set<String> resourceCodes = resourcePort.findResourceCodesByRoleIds(roleIds);
-        return resourceCodes.contains(resourceCode);
+        return getUserPermissions(userId).resourceCodes().contains(resourceCode);
     }
 
     /**

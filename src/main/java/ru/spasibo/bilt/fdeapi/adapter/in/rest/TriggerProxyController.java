@@ -37,7 +37,7 @@ public class TriggerProxyController {
     private final ru.spasibo.bilt.fdeapi.application.service.AccessScopeService accessScopeService;
 
     @PostMapping(value = "/manual", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.triggers.manual')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Ручной запуск пайплайна",
             description = "Проверяет существование пайплайна и проксирует запрос в dispatcher")
     public ResponseEntity<String> manualTrigger(@RequestBody String body) {
@@ -50,7 +50,7 @@ public class TriggerProxyController {
     }
 
     @PostMapping(value = "/stop", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.triggers.stop')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Остановка выполнения",
             description = "Проксирует запрос остановки в dispatcher без предварительной проверки")
     public ResponseEntity<String> stopTrigger(@RequestBody String body) {

@@ -33,6 +33,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
+@PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
 @RequestMapping("/api/v1/roles")
 @RequiredArgsConstructor
 @Tag(name = "Роли", description = "Управление ролями RBAC: создание, чтение, изменение, удаление")
@@ -48,7 +49,7 @@ public class RoleController {
      * @return страница ролей (200 OK)
      */
     @GetMapping
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.permissions.view')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Список ролей (постранично)",
             description = "Возвращает постраничный список ролей с поддержкой фильтрации и сортировки.")
     @ApiResponses({
@@ -78,7 +79,7 @@ public class RoleController {
      * @return список ролей (200 OK)
      */
     @GetMapping("/all")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.permissions.view')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Список всех ролей", description = "Возвращает полный список ролей без пагинации.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Список ролей успешно получен"),
@@ -100,7 +101,7 @@ public class RoleController {
      * @return данные роли (200 OK)
      */
     @GetMapping("/{id}")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.permissions.view')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Получить роль", description = "Возвращает роль по её идентификатору.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Роль найдена"),

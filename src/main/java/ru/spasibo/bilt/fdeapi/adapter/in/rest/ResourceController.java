@@ -31,6 +31,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
+@PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
 @RequestMapping("/api/v1/resources")
 @RequiredArgsConstructor
 @Tag(name = "Ресурсы (RBAC)", description = "Просмотр системных ресурсов (прав доступа) модели RBAC")
@@ -44,7 +45,7 @@ public class ResourceController {
      * @return список ресурсов (200 OK)
      */
     @GetMapping("/list")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.permissions.view')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Список всех ресурсов", description = "Возвращает полный список системных ресурсов без пагинации.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Список ресурсов успешно получен"),
@@ -64,7 +65,7 @@ public class ResourceController {
      * @return страница ресурсов (200 OK)
      */
     @GetMapping
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.permissions.view')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Список ресурсов (постранично)",
             description = "Возвращает постраничный список ресурсов с поддержкой фильтрации и сортировки.")
     @ApiResponses({
@@ -100,7 +101,7 @@ public class ResourceController {
      * @return список ресурсов данного типа (200 OK)
      */
     @GetMapping("/type/{type}")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.permissions.view')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Ресурсы по типу", description = "Возвращает список ресурсов указанного типа.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Список ресурсов успешно получен"),
@@ -118,7 +119,7 @@ public class ResourceController {
      * @return данные ресурса (200 OK)
      */
     @GetMapping("/{id}")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.permissions.view')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Получить ресурс", description = "Возвращает ресурс по его идентификатору.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Ресурс найден"),

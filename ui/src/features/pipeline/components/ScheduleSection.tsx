@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { schedulesApi } from '../api/schedulesApi';
-import { parseCronExpression } from '../../../shared/ui/table/lib/cron';
+import { describeScheduleCron as parseCronExpression } from '../../../shared/ui/table/lib/cron';
 import { usePermissions } from '../../../shared/hooks/usePermissions';
 import { ConfirmationModal } from '../../../shared/components/ConfirmationModal';
 import { Button } from '../../../shared/ui/Button';
@@ -25,10 +25,13 @@ const COMMON_CRON_VALUES = [
 ];
 
 export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
-  const { permissions } = usePermissions();
+  const { permissions, isAdmin } = usePermissions();
 
   const [schedule, setSchedule] = useState<ScheduleData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const enabled = schedule?.enabled ?? schedule?.active;
+  const timezone = schedule?.timezone ?? schedule?.timeZone;
   const [notFound, setNotFound] = useState(false);
 
   // Modal states
@@ -40,27 +43,35 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
 
   const [isCollapsed, setIsCollapsed] = useState(false);
 
+  const loadGeneration = useRef(0);
   const loadSchedule = useCallback(async () => {
+    const generation = ++loadGeneration.current;
     setIsLoading(true);
     setNotFound(false);
+    setSchedule(null);
+    setLoadError(false);
     try {
       const data = await schedulesApi.getSchedule(pipelineId);
+      if (generation !== loadGeneration.current) return;
       setSchedule(data);
     } catch (err) {
+      if (generation !== loadGeneration.current) return;
       if (err instanceof ApiError && err.status === 404) {
         setSchedule(null);
         setNotFound(true);
       } else {
+        setLoadError(true);
         console.error('Failed to load schedule:', err);
         toast.error('Не удалось загрузить расписание');
       }
     } finally {
-      setIsLoading(false);
+      if (generation === loadGeneration.current) setIsLoading(false);
     }
   }, [pipelineId]);
 
   useEffect(() => {
     loadSchedule();
+    return () => { loadGeneration.current++; };
   }, [loadSchedule]);
 
   const handleOpenCreate = () => {
@@ -78,6 +89,7 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
   };
 
   const handleSave = async () => {
+    if (!isAdmin) return;
     if (!cronValue.trim()) {
       toast.error('Cron-выражение не может быть пустым');
       return;
@@ -112,6 +124,7 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
   };
 
   const handleDelete = async () => {
+    if (!isAdmin) return;
     try {
       await schedulesApi.deleteSchedule(pipelineId);
       setSchedule(null);
@@ -135,12 +148,12 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
         >
           <div className='flex items-center gap-3'>
             <h2 className='text-lg font-semibold text-gray-800 dark:text-white'>Расписание</h2>
-            {!isLoading && schedule && schedule.active && (
+            {!isLoading && schedule && enabled === true && (
               <span className='bg-green-100 dark:bg-green-900/50 text-green-800 dark:text-green-200 text-xs font-medium px-2 py-0.5 rounded-full'>
                 Активно
               </span>
             )}
-            {!isLoading && schedule && !schedule.active && (
+            {!isLoading && schedule && enabled === false && (
               <span className='bg-yellow-100 dark:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 text-xs font-medium px-2 py-0.5 rounded-full'>
                 Приостановлено
               </span>
@@ -183,6 +196,7 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
               </div>
             )}
 
+            {!isLoading && loadError && <div role='alert'>Не удалось загрузить расписание. <Button variant='outlined' size='sm' onClick={loadSchedule}>Повторить</Button></div>}
             {!isLoading && schedule && (
               <div className='space-y-3'>
                 {/* Cron info */}
@@ -195,14 +209,15 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
                       <div className='text-xs font-mono text-gray-500 dark:text-gray-400 mt-1'>
                         {schedule.cronExpression}
                       </div>
+                      <p className='text-sm mt-1'>Часовой пояс: {timezone || 'не указан диспетчером'}</p>
                     </div>
                     <div className='flex items-center gap-2'>
-                      {permissions?.canScheduleUpdate && (
+                      {isAdmin && permissions?.canScheduleUpdate && (
                         <Button variant='outlined' size='sm' onClick={handleOpenEdit}>
                           Редактировать
                         </Button>
                       )}
-                      {permissions?.canScheduleDelete && (
+                      {isAdmin && permissions?.canScheduleDelete && (
                         <Button
                           variant='outlinedError'
                           size='sm'
@@ -222,7 +237,7 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
                 <div className='text-gray-400 dark:text-gray-500 text-sm mb-3'>
                   Расписание не установлено
                 </div>
-                {permissions?.canScheduleCreate && (
+                {isAdmin && permissions?.canScheduleCreate && (
                   <Button variant='primary' size='sm' onClick={handleOpenCreate}>
                     Создать расписание
                   </Button>
@@ -235,7 +250,7 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
 
       {/* Cron Editor Modal */}
       <Modal
-        isOpen={isEditorOpen}
+        isOpen={isAdmin && isEditorOpen}
         onClose={() => setIsEditorOpen(false)}
         title={editorMode === 'create' ? 'Создание расписания' : 'Редактирование расписания'}
         variant='custom'
@@ -314,7 +329,7 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal
-        isOpen={isDeleteOpen}
+        isOpen={isAdmin && isDeleteOpen}
         onClose={() => setIsDeleteOpen(false)}
         onConfirm={handleDelete}
         title='Удаление расписания'

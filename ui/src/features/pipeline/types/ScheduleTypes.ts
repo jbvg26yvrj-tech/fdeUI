@@ -1,7 +1,10 @@
 export interface ScheduleData {
   pipelineId: string;
   cronExpression: string;
-  active: boolean;
+  active?: boolean;
+  enabled?: boolean;
+  timezone?: string;
+  timeZone?: string;
 }
 
 export interface CreateScheduleRequest {

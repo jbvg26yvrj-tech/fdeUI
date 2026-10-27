@@ -23,7 +23,7 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
   const fields: FormField[] = [
     {
       name: 'clientCodes',
-      label: 'Доступные клиенты',
+      label: 'Коды клиентов — доступ только для просмотра',
       type: 'text',
       disabled: mode === 'view',
       placeholder: 'DWH, PC — пустое поле не даёт доступа к потокам',
@@ -33,8 +33,8 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
       label: 'Код',
       type: 'text',
       required: true,
-      disabled: mode === 'edit', // Код нельзя редактировать
-      placeholder: 'admin_group',
+      disabled: mode !== 'create', // Код нельзя редактировать
+      placeholder: 'DWH_VIEWER',
     },
     {
       name: 'name',
@@ -42,14 +42,14 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
       type: 'text',
       required: true,
       disabled: mode === 'view',
-      placeholder: 'Администраторы системы',
+      placeholder: 'Просмотр потоков DWH',
     },
     {
       name: 'description',
       label: 'Описание',
       type: 'textarea',
       disabled: mode === 'view',
-      placeholder: 'Группа для полного доступа ко всем функциям системы',
+      placeholder: 'Просмотр пайплайнов, сессий, аналитики и расписаний выбранных клиентов',
     },
   ];
 

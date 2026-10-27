@@ -1,12 +1,14 @@
 package ru.spasibo.bilt.fdeapi.loki;
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import ru.spasibo.bilt.fdeapi.application.service.PermissionService;
 import ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException;
 import java.util.*;
 import static ru.spasibo.bilt.fdeapi.loki.LokiModels.*;
 
 @RestController
+@PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
 @RequestMapping("/api/v1/settings/loki")
 public class LokiSettingsController {
     private final LokiSettingsService settings;

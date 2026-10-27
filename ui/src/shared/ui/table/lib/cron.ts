@@ -146,3 +146,18 @@ export const parseCronExpression = (cron: string): string => {
     return 'Неверный формат cron выражения';
   }
 };
+
+// Intentionally narrow Quartz descriptions; complex expressions remain visible as cron.
+export function describeScheduleCron(cron: string): string {
+  const parts = cron.trim().split(/\s+/);
+  if (parts.length !== 6 && !(parts.length === 7 && parts[6] === '*')) return cron;
+  const [second, minute, hour, day, month, weekday] = parts;
+  if (second !== '0' || month !== '*' || day !== '*' || weekday !== '?') return cron;
+  if (/^\d+$/.test(minute) && Number(minute) < 60 && /^\d+$/.test(hour) && Number(hour) < 24)
+    return `Ежедневно в ${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
+  if (hour === '*' && minute === '0') return 'Каждый час';
+  const interval = /^(?:\*|0)\/(\d+)$/.exec(minute);
+  if (hour === '*' && interval && Number(interval[1]) > 0 && Number(interval[1]) < 60)
+    return `Каждые ${interval[1]} минут в пределах часа`;
+  return cron;
+}

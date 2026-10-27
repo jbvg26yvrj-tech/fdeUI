@@ -494,6 +494,17 @@ class PipelineServiceTest {
     class GetById {
 
         @Test
+        void viewerHidesLegacyCredentialPropsWithoutChangingStoredTasks() {
+            PipelineEntity entity = buildPipelineEntity();
+            entity.getTasks().get(0).setProps(Map.of("sourceDir", "/input", "credentials.password", "secret", "token", "secret"));
+            when(pipelineRepository.findById(PIPELINE_ID)).thenReturn(Optional.of(entity));
+            assertThat(pipelineService.getById(PIPELINE_ID).getTasks().get(0).getProps()).containsExactlyEntriesOf(Map.of("sourceDir", "/input"));
+            assertThat(entity.getTasks().get(0).getProps()).containsKey("credentials.password");
+            when(accessScopeService.isAdmin()).thenReturn(true);
+            assertThat(pipelineService.getById(PIPELINE_ID).getTasks().get(0).getProps()).containsKey("credentials.password");
+        }
+
+        @Test
         @DisplayName("should return PipelineResponse when pipeline exists")
         void getById_found() {
             PipelineEntity entity = buildPipelineEntity();

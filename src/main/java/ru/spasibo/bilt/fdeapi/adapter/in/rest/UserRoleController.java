@@ -37,6 +37,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
+@PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
 @RequiredArgsConstructor
 @Tag(name = "Роли пользователя", description = "Назначение пользователей на роли и запрос прав пользователя")
 public class UserRoleController {
@@ -50,7 +51,7 @@ public class UserRoleController {
      * Защищено через @PreAuthorize.
      */
     @GetMapping("/api/v1/roles/{roleId}/assignedusers")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.permissions.view')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Пользователи роли (список)",
             description = "Возвращает полный список пользователей, назначенных на указанную роль")
     @ApiResponses({
@@ -71,7 +72,7 @@ public class UserRoleController {
      * Защищено через @PreAuthorize.
      */
     @GetMapping("/api/v1/roles/{roleId}/users")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.permissions.view')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Пользователи роли (постранично)",
             description = "Возвращает постраничный список пользователей, назначенных на указанную роль, с опциональным фильтром по логину")
     @ApiResponses({

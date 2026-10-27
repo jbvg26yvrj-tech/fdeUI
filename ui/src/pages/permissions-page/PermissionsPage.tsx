@@ -14,10 +14,10 @@ const PermissionsPage = () => {
   const tabs = [
     { id: 'users', label: 'Пользователи' },
     { id: 'roles', label: 'Роли' },
-    { id: 'resources', label: 'Ресурсы' },
+    { id: 'resources', label: 'Ресурсы (legacy)' },
     { id: 'role-users', label: 'Роли и пользователи' },
-    { id: 'role-resources', label: 'Роли и ресурсы' },
-    { id: 'role-rls', label: 'Роли и RLS' },
+    { id: 'role-resources', label: 'Роли и ресурсы (legacy)' },
+    { id: 'role-rls', label: 'Дополнительные ограничения RLS' },
   ];
 
   return (
@@ -25,6 +25,8 @@ const PermissionsPage = () => {
       <div className='flex justify-between items-center'>
         <h1 className='fde-page-title'>Управление правами доступа</h1>
       </div>
+
+      <p className='text-sm text-gray-600 dark:text-gray-300'>Клиентские роли дают только просмотр пайплайнов, сессий, аналитики и расписаний. Укажите коды клиентов в роли: доступ открывается при точном совпадении источника или получателя. Коды всех ролей пользователя объединяются. Без кодов доступна только информация о системе. Изменения и запуск доступны только ADMIN; старые разрешения ресурсов не дают права записи. RLS дополнительно ограничивает доступ.</p>
 
       {/* Табы для навигации с адаптивными отступами и переносом текста */}
       <div>

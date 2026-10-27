@@ -56,7 +56,7 @@ public class PipelineController {
      * @return созданный пайплайн (201 Created)
      */
     @PostMapping
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.pipelines.create')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Создать пайплайн", description = "Создаёт новый пайплайн обмена файлами на основе переданных данных.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Пайплайн успешно создан"),
@@ -159,7 +159,7 @@ public class PipelineController {
      * @return обновлённый пайплайн (200 OK)
      */
     @PutMapping("/{pipelineId}")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.pipelines.update')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Обновить пайплайн", description = "Полностью обновляет существующий пайплайн по его идентификатору.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Пайплайн успешно обновлён"),
@@ -182,6 +182,7 @@ public class PipelineController {
      * @return карта со списками обязательных и опциональных свойств (200 OK)
      */
     @GetMapping("/task-props/{typeCode}")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Свойства типа задачи",
             description = "Возвращает наборы обязательных и опциональных свойств для указанного кода типа задачи.")
     @ApiResponses({
@@ -205,7 +206,7 @@ public class PipelineController {
      * @return 204 No Content
      */
     @DeleteMapping("/{pipelineId}")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.pipelines.delete')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Удалить пайплайн", description = "Удаляет пайплайн по его идентификатору.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Пайплайн успешно удалён"),

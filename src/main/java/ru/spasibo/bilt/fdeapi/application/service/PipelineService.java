@@ -412,13 +412,23 @@ public class PipelineService {
         }
     }
 
+    // Old persisted tasks can predate validation; only expose documented file-operation settings.
+    private Map<String, String> viewerProps(String typeCode, Map<String, String> props) {
+        if (props == null) return Map.of();
+        Set<String> allowed = TaskPropsDefinition.getAllowedProps(typeCode);
+        Map<String, String> visible = new java.util.HashMap<>();
+        props.forEach((key, value) -> { if (allowed.contains(key)) visible.put(key, value); });
+        return visible;
+    }
+
     private PipelineResponse toResponse(PipelineEntity entity) {
+        boolean admin = accessScopeService.isAdmin();
         List<TaskResponse> taskResponses = entity.getTasks().stream()
                 .map(t -> TaskResponse.builder()
                         .id(t.getId())
                         .taskOrder(t.getTaskOrder())
                         .typeCode(t.getTypeCode())
-                        .props(t.getProps())
+                        .props(admin ? t.getProps() : viewerProps(t.getTypeCode(), t.getProps()))
                         .build())
                 .collect(Collectors.toList());
 

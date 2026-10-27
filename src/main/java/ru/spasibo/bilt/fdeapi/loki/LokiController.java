@@ -1,12 +1,14 @@
 package ru.spasibo.bilt.fdeapi.loki;
 
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.format.annotation.DateTimeFormat;
 import java.time.Instant;
 import java.util.*;
 import static ru.spasibo.bilt.fdeapi.loki.LokiModels.*;
 
 @RestController
+@PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
 @RequestMapping("/api/v1/logs")
 public class LokiController {
     private final LokiService service;

@@ -23,6 +23,7 @@ import java.util.List;
  * Используется фронтендом для динамического построения форм.
  */
 @RestController
+@PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
 @RequestMapping("/api/v1/task-templates")
 @RequiredArgsConstructor
 @Slf4j
@@ -38,8 +39,7 @@ public class TaskTemplateController {
      * @return список описаний параметров
      */
     @GetMapping("/{typeCode}")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.pipelines.create') " +
-            "or @permissionService.currentUserHasPermission('api.pipelines.update')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Получить шаблон параметров задачи",
             description = "Возвращает список описаний параметров для указанного типа задачи. Используется фронтендом для динамического построения форм")
     @ApiResponses({

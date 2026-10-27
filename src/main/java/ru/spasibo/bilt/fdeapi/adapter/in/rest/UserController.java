@@ -39,6 +39,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
+@PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
 @Validated
@@ -57,7 +58,7 @@ public class UserController {
      * @return постраничный список пользователей
      */
     @GetMapping
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.users.list')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Список пользователей",
             description = "Возвращает постраничный список всех пользователей с опциональными фильтрами по логину, активности и необходимости смены пароля")
     @ApiResponses({
@@ -87,7 +88,7 @@ public class UserController {
      * @return данные пользователя
      */
     @GetMapping("/{id}")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.users.get')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Получить пользователя по идентификатору",
             description = "Возвращает данные одного пользователя по его идентификатору")
     @ApiResponses({
@@ -109,7 +110,7 @@ public class UserController {
      * @return созданный пользователь (201 Created)
      */
     @PostMapping
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.users.create')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Создать пользователя",
             description = "Создаёт нового пользователя. Административная операция")
     @ApiResponses({
@@ -140,7 +141,7 @@ public class UserController {
      * @return обновлённый пользователь
      */
     @PutMapping("/{id}")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.users.update')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Обновить пользователя",
             description = "Обновляет данные пользователя: признак активности и необходимость смены пароля")
     @ApiResponses({
@@ -172,7 +173,7 @@ public class UserController {
      * @return 204 No Content
      */
     @DeleteMapping("/{id}")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.users.delete')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Удалить пользователя",
             description = "Удаляет пользователя по идентификатору. Удаление самого себя запрещено")
     @ApiResponses({

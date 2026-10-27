@@ -6,6 +6,8 @@ export const usePermissions = () => {
   const [context, setContext] = useState(userContextApi.getCachedContext());
   const [isLoading, setIsLoading] = useState(!context);
 
+  const isAdmin = context?.roleCodes?.includes('ADMIN') ?? false;
+
   // Функция загрузки контекста
   const loadContext = useCallback(async () => {
     try {
@@ -24,7 +26,9 @@ export const usePermissions = () => {
     (permission: string): boolean => {
       // Если контекст есть, проверяем права
       if (context && context.resourceCodes) {
-        return context.resourceCodes.includes(permission);
+        if (isAdmin) return true;
+        const viewerResources = ['api.pipelines.list', 'api.pipelines.get', 'api.sessions.list', 'api.sessions.get', 'api.schedules.get', 'page.pipelines', 'page.sessions', 'page.analytics', 'table.pipelines', 'table.sessions', 'api.analytics.read'];
+        return viewerResources.includes(permission) && context.resourceCodes.includes(permission);
       }
 
       // Если контекста нет, запускаем загрузку и возвращаем false
@@ -35,7 +39,7 @@ export const usePermissions = () => {
 
       return false;
     },
-    [context, isLoading, loadContext],
+    [context, isAdmin, isLoading, loadContext],
   );
 
   // Загрузка контекста при монтировании
@@ -63,25 +67,26 @@ export const usePermissions = () => {
   const permissions = useMemo(() => {
     return {
       canPipelineDetails: hasResourcePermission('api.pipelines.get'),
-      canPipelineSchedule: hasResourcePermission('api.schedules.create'),
-      canPipelineUnschedule: hasResourcePermission('api.schedules.delete'),
-      canPipelineCreate: hasResourcePermission('api.pipelines.create'),
-      canPipelineUpdate: hasResourcePermission('api.pipelines.update'),
-      canPipelineDelete: hasResourcePermission('api.pipelines.delete'),
+      canPipelineSchedule: isAdmin,
+      canPipelineUnschedule: isAdmin,
+      canPipelineCreate: isAdmin,
+      canPipelineUpdate: isAdmin,
+      canPipelineDelete: isAdmin,
       canSessionProgressOpen: hasResourcePermission('api.sessions.get'),
       canSessionProgressDetails: hasResourcePermission('api.sessions.get'),
       canPipelineSessions: hasResourcePermission('api.sessions.list'),
-      canScheduleCreate: hasResourcePermission('api.schedules.create'),
+      canScheduleCreate: isAdmin,
       canScheduleGet: hasResourcePermission('api.schedules.get'),
-      canScheduleUpdate: hasResourcePermission('api.schedules.update'),
-      canScheduleDelete: hasResourcePermission('api.schedules.delete'),
-      canTriggerManual: hasResourcePermission('api.triggers.manual'),
-      canTriggerStop: hasResourcePermission('api.triggers.stop'),
+      canScheduleUpdate: isAdmin,
+      canScheduleDelete: isAdmin,
+      canTriggerManual: isAdmin,
+      canTriggerStop: isAdmin,
     };
-  }, [hasResourcePermission]);
+  }, [hasResourcePermission, isAdmin]);
 
   return {
     isLoading,
+    isAdmin,
     user: context?.user || null,
     hasPermission,
     hasResourcePermission,

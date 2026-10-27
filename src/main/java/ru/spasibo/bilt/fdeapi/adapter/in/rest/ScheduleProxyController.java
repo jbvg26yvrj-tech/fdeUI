@@ -37,7 +37,7 @@ public class ScheduleProxyController {
     private final ru.spasibo.bilt.fdeapi.application.service.AccessScopeService accessScopeService;
 
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.schedules.create')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Создать расписание",
             description = "Проверяет существование пайплайна и проксирует запрос в dispatcher")
     public ResponseEntity<String> createSchedule(@RequestBody String body) {
@@ -61,7 +61,7 @@ public class ScheduleProxyController {
     }
 
     @PutMapping(value = "/{pipelineId}", consumes = MediaType.APPLICATION_JSON_VALUE)
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.schedules.update')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Обновить расписание", description = "Проксирует PUT-запрос в dispatcher")
     public ResponseEntity<String> updateSchedule(
             @Parameter(description = "Идентификатор пайплайна") @PathVariable UUID pipelineId,
@@ -77,7 +77,7 @@ public class ScheduleProxyController {
     }
 
     @DeleteMapping("/{pipelineId}")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.schedules.delete')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Удалить расписание", description = "Проксирует DELETE-запрос в dispatcher")
     public ResponseEntity<String> deleteSchedule(
             @Parameter(description = "Идентификатор пайплайна") @PathVariable UUID pipelineId) {

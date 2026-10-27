@@ -32,6 +32,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
+@PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
 @RequestMapping("/api/v1/roles/{roleId}/resources")
 @RequiredArgsConstructor
 @Tag(name = "Ресурсы роли", description = "Управление привязками ресурсов (прав доступа) к роли")
@@ -48,7 +49,7 @@ public class RoleResourceController {
      * @return список ресурсов роли (200 OK)
      */
     @GetMapping("/list")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.permissions.view')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Список ресурсов роли", description = "Возвращает полный список ресурсов, привязанных к указанной роли, без пагинации.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Список ресурсов роли успешно получен"),
@@ -71,7 +72,7 @@ public class RoleResourceController {
      * @return страница ресурсов роли (200 OK)
      */
     @GetMapping
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.permissions.view')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "Ресурсы роли (постранично)",
             description = "Возвращает постраничный список ресурсов, привязанных к роли, с фильтрацией и сортировкой.")
     @ApiResponses({

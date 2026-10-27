@@ -33,6 +33,7 @@ import java.util.UUID;
  */
 @Slf4j
 @RestController
+@PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
 @Tag(name = "RLS-фильтры", description = "Управление фильтрами безопасности на уровне строк (Row-Level Security) для ролей и пользователей")
@@ -48,7 +49,7 @@ public class RlsController {
      * @return страница RLS-фильтров (200 OK)
      */
     @GetMapping("/roles/{roleId}/rls")
-    @PreAuthorize("@permissionService.currentUserHasPermission('api.permissions.view')")
+    @PreAuthorize("@permissionService.currentUserHasRole('ADMIN')")
     @Operation(summary = "RLS-фильтры роли",
             description = "Возвращает постраничный список RLS-фильтров для указанной роли с фильтрацией и сортировкой.")
     @ApiResponses({
