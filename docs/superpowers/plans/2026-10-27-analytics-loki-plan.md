@@ -81,9 +81,9 @@ Parent owns ResourceDefinition.java entries API_ANALYTICS_READ/PAGE_ANALYTICS/AP
 - [x] Add four resource enum entries; verify resource synchronizer assigns ADMIN access without granting new pages to all users.
 - [x] Reconcile DTOs/endpoints across workers before final build. Independently review SQL scope, secret handling, outbound constraints and UI transitions; fix actionable findings.
 - [x] Run backend full tests with -DskipUI and isolated target, UI full tests/build, TypeScript check against existing baseline. Tests for new code must pass, baseline errors documented separately.
-- [ ] Commit tested changes, backup DB/deployment, deploy prebuilt UI + Java image. Generate Loki encryption key server-side without exposing it. No target host credentials guessed.
-- [ ] Browser verify analytics empty/populated data using existing sessions, permissions and settings; no new execution for fake analytics data. Verify Loki configuration form and no-connection states, note that external connection awaits user-entered values.
-- [ ] Save screenshot and report concrete results/limits and clean git status.
+- [x] Commit tested changes, backup DB/deployment, deploy prebuilt UI + Java image. Generate Loki encryption key server-side without exposing it. No target host credentials guessed.
+- [x] Browser verify analytics empty/populated data using existing sessions, permissions and settings; no new execution for fake analytics data. Verify Loki configuration form and no-connection states, note that external connection awaits user-entered values.
+- [x] Save screenshot and report concrete results/limits and clean git status.
 
 
 ## Integration notes
@@ -103,3 +103,15 @@ Parent owns ResourceDefinition.java entries API_ANALYTICS_READ/PAGE_ANALYTICS/AP
 - TypeScript reports the same 18 pre-existing errors as the previous baseline; the complete output is byte-identical. No new type errors.
 - Independent backend and UI review completed. Fixed six findings: separate SKIPPED counter, reject uncorrelated pipeline-only log queries, preserve pipelineId, FAILED-only common-error drilldown, retain historical windows when switching Loki, require explicit choice among several Loki sources.
 - Also verified official Loki query response encoding for structured metadata; fixtures use categorized response metadata, not ingestion payloads. No real external Loki was contacted.
+
+
+## Deployment verification — 2026-10-27
+
+- Deployed image `fde-local/api:4773cbf`; all four stand pods Ready with no restarts. PostgreSQL migration applied (settings endpoint reads its new table successfully).
+- Database backup `pre-4773cbf.dump` and deployment backup `api-pre-4773cbf.json` exist under the stand's backups directory. Independent Loki encryption key created server-side; no external hosts or credentials configured.
+- Live API overview and series agree with session pagination: 6 sessions, 4 SUCCESS, 2 ABORTED, 0 FAILED, zero processed-file counters/bytes. Config confirms UTC and testStand=true; pipeline selector returns 7 pipelines. Anonymous analytics/logs/settings requests denied.
+- Browser verified overall overview, individual DWH→PC flow (one SUCCESS), last-start/last-success, per-session charts, FAILED empty state, graph-hour drilldown returning exactly 2 sessions, and session-to-logs URL preserving identifiers/time.
+- Browser verified no-connections state, settings form, and draft test of an unallowed `.invalid` address: clear denial, no settings saved. This is not a real Loki connectivity test.
+- Responsive checks at 1366px and 390px: no document overflow. Dark theme inspected; original light theme and viewport restored. Final browser left on `/analytics`.
+- Proof screenshot: `/Users/kirillkolomoec/.codex/visualizations/2026/10/26/01a17768-2a4a-76c1-bb6d-7390ed5217a7/fde-analytics-live.png`.
+- Remaining external dependency: actual Loki hosts/ports, TLS trust, auth and correlation format. Real corporate Loki integration is not claimed until those are supplied and tested.
