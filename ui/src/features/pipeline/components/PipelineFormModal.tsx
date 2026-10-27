@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { PipelineCreateWizard } from './pipeline-wizard/PipelineCreateWizard';
 import { Modal } from '../../../shared/ui/Modal';
 import { Input } from '../../../shared/ui/Input';
 import { Select } from '../../../shared/ui/Select';
@@ -59,7 +60,7 @@ interface PipelineFormValues {
   tasks: TaskFormData[];
 }
 
-interface PipelineFormSaveValues {
+export interface PipelineFormSaveValues {
   pipelineName: string;
   clientFrom: string;
   clientTo: string;
@@ -76,7 +77,7 @@ interface PipelineFormSaveValues {
 interface PipelineFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (values: PipelineFormSaveValues) => void;
+  onSave: (values: PipelineFormSaveValues) => void | Promise<PipelineData | undefined>;
   pipeline?: PipelineData | null;
   mode: 'create' | 'edit';
   isLoading?: boolean;
@@ -128,7 +129,14 @@ const defaultFormValues: PipelineFormValues = {
   tasks: [],
 };
 
-export const PipelineFormModal: React.FC<PipelineFormModalProps> = ({
+export const PipelineFormModal: React.FC<PipelineFormModalProps> = props => {
+  if (props.mode === 'create') {
+    return props.isOpen ? <PipelineCreateWizard onClose={props.onClose} onSave={props.onSave} isLoading={props.isLoading} /> : null;
+  }
+  return <PipelineEditFormModal {...props} />;
+};
+
+const PipelineEditFormModal: React.FC<PipelineFormModalProps> = ({
   isOpen,
   onClose,
   onSave,

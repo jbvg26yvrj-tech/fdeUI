@@ -5,7 +5,7 @@ import { fetchPipelines, mapServerResponseToTableMeta } from '../api/pipelinesTa
 import { pipelinesCrudApi } from '../../api/pipelinesCrudApi';
 import { triggersApi } from '../../api/triggersApi';
 import { fetchPipelinesDetails } from '../../pipelines-details/api/PipelinesDetailsApi';
-import { PipelineFormModal } from '../../components/PipelineFormModal';
+import { PipelineFormModal, type PipelineFormSaveValues } from '../../components/PipelineFormModal';
 import { ConfirmationModal } from '../../../../shared/components/ConfirmationModal';
 import type { SimplePipelineData, PipelineData } from '../../types/Types';
 import type { Column } from '../../../../shared/ui/table/types/type';
@@ -177,18 +177,9 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
     setTriggerModalState({ isOpen: true, pipeline });
   }, []);
 
-  const handleFormSave = async (values: {
-    pipelineName: string;
-    clientFrom: string;
-    clientTo: string;
-    primaryDatacenter: string;
-    allOrNothing: boolean;
-    tasks: Array<{
-      taskOrder: number;
-      typeCode: string;
-      props: Array<{ key: string; value: string }>;
-    }>;
-  }) => {
+  const refreshAfterCreate = useRef(false);
+
+  const handleFormSave = async (values: PipelineFormSaveValues): Promise<PipelineData | undefined> => {
     setActionLoading(true);
     try {
       const tasksPayload = values.tasks.map(t => ({
@@ -209,16 +200,18 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
       };
 
       if (formModalMode === 'create') {
-        await pipelinesCrudApi.createPipeline(payload as any);
-        toast.success('Пайплайн успешно создан');
+        const created = await pipelinesCrudApi.createPipeline(payload);
+        refreshAfterCreate.current = true;
+        return created;
       } else if (selectedPipeline) {
-        await pipelinesCrudApi.updatePipeline(selectedPipeline.id, payload as any);
+        await pipelinesCrudApi.updatePipeline(selectedPipeline.id, payload);
         toast.success('Пайплайн успешно обновлен');
       }
 
       setIsFormModalOpen(false);
       loadServerData();
     } catch (err) {
+      if (formModalMode === 'create') throw err;
       console.error('Pipeline save error:', err);
       const message =
         err instanceof ApiError ? err.message : 'Произошла ошибка при сохранении пайплайна';
@@ -439,7 +432,13 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
 
       <PipelineFormModal
         isOpen={isFormModalOpen}
-        onClose={() => setIsFormModalOpen(false)}
+        onClose={() => {
+          setIsFormModalOpen(false);
+          if (refreshAfterCreate.current) {
+            refreshAfterCreate.current = false;
+            void loadServerData();
+          }
+        }}
         onSave={handleFormSave}
         pipeline={selectedPipeline}
         mode={formModalMode}

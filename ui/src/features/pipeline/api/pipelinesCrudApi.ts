@@ -1,5 +1,5 @@
 import { apiClient } from '../../../shared/api/apiClient';
-import type { PipelineData } from '../types/Types';
+import type { PipelineData, SimplePipelineData } from '../types/Types';
 import type { TaskType } from '../types/TaskTypes';
 
 export interface CreateTaskRequest {
@@ -13,6 +13,7 @@ export interface CreatePipelineRequest {
   clientFrom: string;
   clientTo: string;
   primaryDatacenter?: string;
+  allOrNothing?: boolean;
   tasks: CreateTaskRequest[];
 }
 
@@ -21,6 +22,7 @@ export interface UpdatePipelineRequest {
   clientFrom?: string;
   clientTo?: string;
   primaryDatacenter?: string;
+  allOrNothing?: boolean;
   tasks?: CreateTaskRequest[];
 }
 
@@ -54,4 +56,23 @@ export const pipelinesCrudApi = {
       pipelineIds,
     });
   },
+};
+
+export interface PipelineReusePage {
+  content: SimplePipelineData[];
+  page: number;
+  size: number;
+  totalPages: number;
+  totalElements: number;
+}
+
+// Reuse only records returned by the existing permission- and client-scoped API.
+export const pipelineReuseApi = {
+  search: (query = '', page = 0): Promise<PipelineReusePage> => {
+    const params = new URLSearchParams({ page: String(page), size: '100', sort: 'pipelineName,asc' });
+    if (query.trim()) params.set('pipelineName', query.trim());
+    return apiClient.get<PipelineReusePage>(`/pipelines?${params.toString()}`);
+  },
+  get: (id: string): Promise<PipelineData> =>
+    apiClient.get<PipelineData>(`/pipelines/${encodeURIComponent(id)}`),
 };
