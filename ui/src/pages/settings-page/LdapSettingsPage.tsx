@@ -145,9 +145,9 @@ export default function LdapSettingsPage() {
     );
 
   return (
-    <section className='max-w-4xl mx-auto pb-12'>
+    <section className='fde-settings max-w-5xl mx-auto pb-8'>
       <p className='text-sm text-slate-500 dark:text-slate-400 mb-2'>Настройки / LDAP</p>
-      <h1 className='text-3xl font-semibold tracking-tight'>Доменный вход и синхронизация</h1>
+      <h1 className='fde-page-title'>Доменный вход и синхронизация</h1>
       <p className='mt-3 max-w-2xl text-slate-600 dark:text-slate-300'>
         Сотрудники входят с учётной записью организации. После первого входа администратор назначает
         роли в разделе «Права доступа».
@@ -169,7 +169,7 @@ export default function LdapSettingsPage() {
         </div>
       )}
       <form
-        className='mt-8'
+        className='fde-panel mt-6'
         onSubmit={event => {
           event.preventDefault();
           void perform('save');
@@ -194,7 +194,7 @@ export default function LdapSettingsPage() {
               Синхронизация включена
             </label>
           </div>
-          <div className='grid sm:grid-cols-2 gap-6'>
+          <div className='grid sm:grid-cols-2 gap-5'>
             <label className='text-sm font-medium'>
               Тип каталога
               <select
@@ -248,7 +248,7 @@ export default function LdapSettingsPage() {
             Сертификат и имя сервера проверяются обязательно. Для корпоративного центра сертификации
             настройте доверенный сертификат на сервере FDE.
           </p>
-          <div>
+          <div className='fde-section'>
             <h2 className='font-semibold text-lg mb-5'>Поиск и атрибуты сотрудников</h2>
             <div className='grid sm:grid-cols-2 gap-6'>
               {textFields.slice(3).map(field => (
@@ -263,7 +263,7 @@ export default function LdapSettingsPage() {
               ))}
             </div>
           </div>
-          <div className='grid sm:grid-cols-3 gap-6'>
+          <div className='fde-section grid sm:grid-cols-3 gap-5'>
             {numericFields.map(field => (
               <Input
                 key={field.key}
@@ -303,10 +303,7 @@ export default function LdapSettingsPage() {
           </p>
         </fieldset>
       </form>
-      <section
-        className='mt-10 pt-8 border-t border-slate-200 dark:border-slate-700'
-        aria-labelledby='sync-heading'
-      >
+      <section className='fde-panel mt-6' aria-labelledby='sync-heading'>
         <h2 id='sync-heading' className='text-xl font-semibold'>
           Синхронизация сотрудников
         </h2>

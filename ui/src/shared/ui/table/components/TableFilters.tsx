@@ -259,17 +259,15 @@ export const TableFilters = <T,>({
   };
 
   return (
-    <div className='p-4 border-b border-gray-200 dark:border-gray-700'>
+    <div className='fde-table-filters p-4'>
       {/* Адаптивная строка с заголовком и кнопками */}
-      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2'>
+      <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
         {/* Левая часть: заголовок и индикатор */}
         <div className='flex items-center space-x-3 flex-wrap'>
-          <h1 className='text-lg font-semibold text-gray-800 dark:text-white'>{caption}</h1>
+          <h1 className='fde-table-title text-lg font-semibold'>{caption}</h1>
           <div className='text-sm text-gray-600 dark:text-gray-400'>
             {hasActiveState && (
-              <span className='text-blue-600 dark:text-blue-400'>
-                (применены фильтры или сортировка)
-              </span>
+              <span className='text-blue-600 dark:text-blue-400'>Фильтры / сортировка</span>
             )}
           </div>
         </div>
@@ -281,6 +279,8 @@ export const TableFilters = <T,>({
               variant='outlined'
               size='sm'
               onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+              aria-expanded={isFiltersExpanded}
+              title={isFiltersExpanded ? 'Скрыть фильтры' : 'Показать фильтры'}
               icon={
                 <svg
                   className={`w-4 h-4 transition-transform ${isFiltersExpanded ? 'rotate-180' : ''}`}
@@ -296,7 +296,9 @@ export const TableFilters = <T,>({
                   />
                 </svg>
               }
-            ></Button>
+            >
+              Фильтры
+            </Button>
           )}
 
           {availableFilterFields.length > 0 && (
@@ -317,7 +319,9 @@ export const TableFilters = <T,>({
                       />
                     </svg>
                   }
-                ></Button>
+                >
+                  Добавить фильтр
+                </Button>
               </span>
 
               {isAddFilterPopupOpen && availableFilterFields.length > 0 && (
@@ -405,16 +409,21 @@ export const TableFilters = <T,>({
                 return (
                   <div
                     key={field}
-                    className='min-w-0 relative group bg-gray-50 dark:bg-gray-800 rounded-md p-2 min-h-[64px]'
+                    className='fde-table-filter-field min-w-0 relative group rounded-md p-2 min-h-[64px]'
                   >
                     <div className='flex items-center justify-between mb-1'>
-                      <label className='block text-xs font-medium text-gray-600 dark:text-gray-400 truncate'>
+                      <label
+                        title={column.title}
+                        className='block text-xs font-medium text-gray-600 dark:text-gray-400 truncate'
+                      >
                         {column.title}
                       </label>
                       <Button
                         variant='text'
                         size='sm'
                         onClick={() => removeFilterField(field)}
+                        title={`Удалить фильтр: ${column.title}`}
+                        aria-label={`Удалить фильтр: ${column.title}`}
                         className='opacity-70 hover:opacity-100 transition-opacity p-1'
                         icon={
                           <svg
@@ -440,9 +449,9 @@ export const TableFilters = <T,>({
               })}
             </div>
           ) : (
-            <div className='text-center py-4 text-gray-500 dark:text-gray-400 text-sm bg-gray-50 dark:bg-gray-800 rounded-lg'>
+            <div className='fde-table-filter-empty flex items-center gap-2 py-2 text-sm'>
               <svg
-                className='w-8 h-8 mx-auto text-gray-300 dark:text-gray-600 mb-2'
+                className='w-4 h-4 shrink-0'
                 fill='none'
                 stroke='currentColor'
                 viewBox='0 0 24 24'

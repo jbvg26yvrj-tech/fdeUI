@@ -1,4 +1,5 @@
 import React from 'react';
+import '../ui/table/table.css';
 import type { Column } from '../ui/table/types/type';
 
 interface SkeletonTableProps {
@@ -17,10 +18,14 @@ export const SkeletonTable: React.FC<SkeletonTableProps> = ({
   const availableFilterFieldsCount = filterableColumns.length;
 
   return (
-    <div className='w-full bg-white dark:bg-gray-900 rounded-lg shadow overflow-hidden'>
+    <div
+      className='fde-table fde-table-skeleton w-full overflow-hidden'
+      aria-label='Загрузка данных'
+      aria-busy='true'
+    >
       {/* Верхняя панель с заголовком и кнопками */}
       <div className='p-4 border-b border-gray-200 dark:border-gray-700'>
-        <div className='flex justify-between items-center mb-2'>
+        <div className='flex flex-wrap gap-3 justify-between items-center mb-2'>
           <div className='flex items-center space-x-3'>
             {/* Заголовок-скелетон с shimmer */}
             <div className='h-6 bg-gray-200 dark:bg-gray-700 rounded skeleton-shimmer w-32'></div>
@@ -29,7 +34,7 @@ export const SkeletonTable: React.FC<SkeletonTableProps> = ({
             )}
           </div>
 
-          <div className='flex items-center space-x-2'>
+          <div className='flex flex-wrap gap-2 items-center'>
             {/* Кнопка "Показать фильтры" */}
             {filterableColumns.length > 0 && (
               <div className='h-8 bg-gray-200 dark:bg-gray-700 rounded skeleton-shimmer w-32'></div>
@@ -67,7 +72,7 @@ export const SkeletonTable: React.FC<SkeletonTableProps> = ({
           </div>
         ) : (
           // Заглушка "Нет активных фильтров"
-          <div className='mt-4 text-center py-4 bg-gray-50 dark:bg-gray-800 rounded-lg'>
+          <div className='mt-3 text-center py-2 bg-gray-50 dark:bg-gray-800 rounded-lg'>
             <div className='flex flex-col items-center'>
               <div className='w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded skeleton-shimmer mb-2'></div>
               <div className='h-4 bg-gray-200 dark:bg-gray-700 rounded skeleton-shimmer w-40 mb-1'></div>

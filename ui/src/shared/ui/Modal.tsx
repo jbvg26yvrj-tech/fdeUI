@@ -104,7 +104,7 @@ export const Modal: React.FC<ModalProps> = ({
         <div
           ref={modalRef}
           className={clsx(
-            'relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full',
+            'relative bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 w-full',
             sizeClasses[size],
             className,
           )}

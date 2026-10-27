@@ -1,0 +1,243 @@
+.fde-shell {
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--fde-canvas, #f4f7fb);
+  color: var(--fde-ink, #172b46);
+}
+.fde-auth-shell {
+  min-height: 100vh;
+  background: var(--fde-canvas, #f4f7fb);
+}
+.fde-shell-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.fde-main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 24px 28px;
+}
+.fde-sidebar-container {
+  flex-shrink: 0;
+  display: flex;
+}
+.fde-sidebar {
+  width: 232px;
+  flex-shrink: 0;
+  background: #172b46;
+  color: #e6edf7;
+  padding: 22px 12px;
+  overflow: auto;
+}
+.fde-sidebar-collapsed {
+  width: 68px;
+  padding-inline: 10px;
+}
+.fde-nav-group + .fde-nav-group {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #354861;
+}
+.fde-nav-label {
+  color: #a9bbd2;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 0 12px;
+  margin: 0 0 10px;
+}
+.fde-nav-group ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.fde-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 42px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  color: #d4dfed;
+  font-size: 14px;
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+.fde-nav-link:hover {
+  background: #243b58;
+  color: #fff;
+}
+.fde-nav-link.fde-nav-active {
+  background: #29476c;
+  color: #fff;
+  border-left-color: #82a8ff;
+  font-weight: 600;
+}
+.fde-nav-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+.fde-sidebar-collapsed .fde-nav-link {
+  justify-content: center;
+  padding-inline: 0;
+}
+.fde-topbar {
+  height: 64px;
+  flex-shrink: 0;
+  background: var(--fde-surface, #fff);
+  border-bottom: 1px solid var(--fde-border, #dce3ec);
+}
+.fde-topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 100%;
+  padding: 0 24px 0 16px;
+}
+.fde-topbar-brand,
+.fde-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.fde-brand-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 30px;
+  width: 30px;
+  background: var(--fde-accent, #315ee8);
+  border-radius: 6px;
+}
+.fde-brand-name {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.fde-section-name {
+  border-left: 1px solid var(--fde-border, #dce3ec);
+  padding-left: 20px;
+  font-size: 14px;
+  color: var(--fde-muted, #64748b);
+  white-space: nowrap;
+}
+.fde-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.fde-icon-button:hover,
+.fde-logout-button:hover {
+  background: #eef2f8;
+}
+.fde-account-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 500;
+}
+.fde-logout-button {
+  border: 1px solid var(--fde-border, #dce3ec);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.fde-nav-link:focus-visible,
+.fde-icon-button:focus-visible,
+.fde-logout-button:focus-visible,
+.fde-drawer-close:focus-visible {
+  outline: 2px solid #82a8ff;
+  outline-offset: 3px;
+}
+.fde-drawer-backdrop {
+  position: fixed;
+  inset: 64px 0 0;
+  z-index: 35;
+  background: rgb(10 25 44 / 45%);
+  cursor: default;
+}
+.fde-drawer {
+  position: fixed;
+  inset: 64px auto 0 0;
+  z-index: 40;
+  width: min(280px, 85vw);
+  background: #172b46;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 8px 0 30px rgb(10 25 44 / 18%);
+}
+.fde-drawer .fde-sidebar {
+  width: 100%;
+  flex: 1;
+}
+.fde-drawer-close {
+  margin: 16px 16px 0;
+  padding: 10px;
+  text-align: left;
+  color: #e6edf7;
+  border: 1px solid #526680;
+  border-radius: 6px;
+  font-size: 14px;
+}
+.dark .fde-shell,
+.dark .fde-auth-shell {
+  background: #101c2d;
+  color: #e6edf7;
+}
+.dark .fde-topbar {
+  background: #1b2c42;
+  border-color: #354861;
+}
+.dark .fde-section-name {
+  color: #b0c1d7;
+  border-color: #354861;
+}
+.dark .fde-logout-button {
+  border-color: #526680;
+}
+.dark .fde-icon-button:hover,
+.dark .fde-logout-button:hover {
+  background: #29415f;
+}
+@media (max-width: 900px) {
+  .fde-main {
+    padding: 20px;
+  }
+  .fde-topbar-inner {
+    padding-inline: 12px;
+  }
+  .fde-topbar-brand,
+  .fde-topbar-actions {
+    gap: 10px;
+  }
+}
+@media (max-width: 600px) {
+  .fde-main {
+    padding: 16px 12px;
+  }
+  .fde-section-name,
+  .fde-account-name {
+    display: none;
+  }
+  .fde-topbar-actions {
+    gap: 6px;
+  }
+  .fde-topbar-brand {
+    gap: 8px;
+  }
+}

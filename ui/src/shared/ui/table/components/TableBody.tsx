@@ -27,7 +27,7 @@ export const TableBody = <T extends object>({
   rowKey,
 }: TableBodyProps<T>) => {
   return (
-    <tbody className='bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700'>
+    <tbody className='fde-table-body'>
       {data.length > 0 ? (
         data.map((row, index) => {
           const key = rowKey
@@ -40,7 +40,7 @@ export const TableBody = <T extends object>({
             <tr
               key={key}
               className={clsx(
-                'hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors duration-150',
+                'fde-table-row transition-colors duration-150',
                 onRowDoubleClick && 'cursor-pointer',
                 isResizing && 'pointer-events-none',
               )}
@@ -57,7 +57,7 @@ export const TableBody = <T extends object>({
                   return (
                     <td
                       key={columnKey}
-                      className='px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'
+                      className='fde-table-cell px-4 py-3 whitespace-nowrap text-sm'
                       style={{
                         width: `${currentWidth}px`,
                         minWidth: `${columnMinWidth}px`,
@@ -82,7 +82,7 @@ export const TableBody = <T extends object>({
                 return (
                   <td
                     key={columnKey}
-                    className='px-4 py-3 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100'
+                    className='fde-table-cell px-4 py-3 whitespace-nowrap text-sm'
                     style={{
                       width: `${currentWidth}px`,
                       minWidth: `${columnMinWidth}px`,
@@ -110,10 +110,7 @@ export const TableBody = <T extends object>({
         })
       ) : (
         <tr>
-          <td
-            colSpan={columns.length}
-            className='px-4 py-8 text-center text-gray-500 dark:text-gray-400 text-sm'
-          >
+          <td colSpan={columns.length} className='fde-table-empty px-4 py-12 text-center text-sm'>
             {emptyMessage}
           </td>
         </tr>

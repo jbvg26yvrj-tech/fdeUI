@@ -1,4 +1,5 @@
 import React from 'react';
+import '../ui/table/table.css';
 import { TableIcon, CardsIcon } from '../ui/table/lib/icons';
 
 interface ViewModeLayoutProps {
@@ -23,34 +24,36 @@ export const ViewModeLayout: React.FC<ViewModeLayoutProps> = ({
   headerActions,
 }) => {
   return (
-    <div className={`space-y-4 ${className}`}>
-      <div className='flex justify-between items-center'>
-        <div className='flex items-center space-x-2'>
-          {headerActions}
-        </div>
-        <div className='flex space-x-1'>
-        <button
-          onClick={() => setDisplayMode('table')}
-          className={`p-2 rounded-md transition-colors ${
-            displayMode === 'table'
-              ? 'bg-blue-100 dark:bg-blue-900'
-              : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-          }`}
-          title='Таблица'
-        >
-          <TableIcon active={displayMode === 'table'} />
-        </button>
-        <button
-          onClick={() => setDisplayMode('cards')}
-          className={`p-2 rounded-md transition-colors ${
-            displayMode === 'cards'
-              ? 'bg-blue-100 dark:bg-blue-900'
-              : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-          }`}
-          title='Карточки'
-        >
-          <CardsIcon active={displayMode === 'cards'} />
-        </button>
+    <div className={`fde-view-layout min-w-0 space-y-3 ${className}`}>
+      <div className='flex flex-wrap justify-between items-center gap-3'>
+        <div className='flex flex-wrap items-center gap-2'>{headerActions}</div>
+        <div className='fde-view-switch flex space-x-1' role='group' aria-label='Вид данных'>
+          <button
+            onClick={() => setDisplayMode('table')}
+            className={`p-2 rounded-md transition-colors ${
+              displayMode === 'table'
+                ? 'bg-blue-100 dark:bg-blue-900'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+            title='Таблица'
+            aria-label='Таблица'
+            aria-pressed={displayMode === 'table'}
+          >
+            <TableIcon active={displayMode === 'table'} />
+          </button>
+          <button
+            onClick={() => setDisplayMode('cards')}
+            className={`p-2 rounded-md transition-colors ${
+              displayMode === 'cards'
+                ? 'bg-blue-100 dark:bg-blue-900'
+                : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+            }`}
+            title='Карточки'
+            aria-label='Карточки'
+            aria-pressed={displayMode === 'cards'}
+          >
+            <CardsIcon active={displayMode === 'cards'} />
+          </button>
         </div>
       </div>
 

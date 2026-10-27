@@ -26,7 +26,7 @@ export const TableHeader = <T,>({
   minColumnWidth,
 }: TableHeaderProps<T>) => {
   return (
-    <thead className='bg-gray-50 dark:bg-gray-800'>
+    <thead className='fde-table-head'>
       <tr>
         {columns.map(column => {
           const columnKey = column.key as string;
@@ -44,7 +44,7 @@ export const TableHeader = <T,>({
                 maxWidth: `${currentWidth}px`,
               }}
               className={clsx(
-                'px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider relative group',
+                'px-4 py-3 text-left text-xs font-semibold relative group',
                 column.sortable && 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700',
                 isResizing && 'pointer-events-none',
               )}

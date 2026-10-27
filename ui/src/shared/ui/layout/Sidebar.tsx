@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useUserContext } from '../../../shared/hooks/useUserContext';
 import clsx from 'clsx';
 
@@ -13,15 +13,18 @@ interface NavigationItem {
 
 interface SidebarProps {
   collapsed?: boolean;
+  onNavigate?: () => void;
 }
 
-export const Sidebar = ({ collapsed = false }: SidebarProps) => {
-  const location = useLocation();
-  const navigate = useNavigate();
-
+export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
   const navigationItems: NavigationItem[] = [
     { name: 'О системе', path: '/about', icon: <PipelineIcon /> },
-    { name: 'Настройки', path: '/settings/ldap', adminOnly: true, icon: <PermissionsIcon /> },
+    {
+      name: 'Настройки',
+      path: '/settings/ldap',
+      adminOnly: true,
+      icon: <PermissionsIcon />,
+    },
     {
       name: 'Пайплайны',
       path: '/pipelines',
@@ -46,8 +49,8 @@ export const Sidebar = ({ collapsed = false }: SidebarProps) => {
   ];
 
   const pagesWithPermissions = navigationItems
-    .filter(item => item.page)
-    .map(item => item.page as string);
+    .filter((item) => item.page)
+    .map((item) => item.page as string);
 
   const {
     isLoading: isLoadingContext,
@@ -67,75 +70,61 @@ export const Sidebar = ({ collapsed = false }: SidebarProps) => {
     if (isLoadingContext) {
       return false;
     }
-    return roles.includes('ADMIN') || hasAnyPermission(item.requiredPermissions);
+    return (
+      roles.includes('ADMIN') || hasAnyPermission(item.requiredPermissions)
+    );
   };
 
-  const isActive = (path: string) => {
-    return location.pathname.startsWith(path);
-  };
-
-  const renderNavigationItems = () => {
-    if (isLoadingContext) {
-      return navigationItems
-        .filter(item => !item.adminOnly)
-        .map(item => (
-          <li key={item.path}>
-            <button
-              disabled
-              className={clsx(
-                'w-full flex items-center rounded-md text-sm font-medium text-gray-400 dark:text-gray-500 opacity-50 cursor-not-allowed',
-                collapsed ? 'justify-center px-2 py-2' : 'justify-start px-3 py-2 space-x-3',
-              )}
-              title={collapsed ? item.name : undefined}
-            >
-              <span className='text-gray-400 dark:text-gray-500'>{item.icon}</span>
-              {!collapsed && <span>{item.name}</span>}
-            </button>
-          </li>
-        ));
-    }
-
-    return navigationItems
-      .filter(item => hasAccess(item))
-      .map(item => (
-        <li key={item.path}>
-          <button
-            onClick={() => navigate(item.path)}
-            className={clsx(
-              'w-full flex items-center rounded-md text-sm font-medium transition-colors',
-              collapsed
-                ? 'justify-center px-2 py-2'
-                : 'justify-start px-3 py-2 space-x-3 whitespace-nowrap overflow-hidden text-ellipsis', // Добавлены классы для предотвращения переноса текста
-              isActive(item.path)
-                ? 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-200 border-r-2 border-blue-600 dark:border-blue-400'
-                : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white',
-            )}
-            title={collapsed ? item.name : undefined}
-          >
-            <span
-              className={
-                isActive(item.path)
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-gray-400 dark:text-gray-500'
-              }
-            >
-              {item.icon}
-            </span>
-            {!collapsed && <span>{item.name}</span>}
-          </button>
-        </li>
-      ));
-  };
+  const visibleItems = navigationItems.filter(hasAccess);
+  const groups = [
+    { label: 'Работа', paths: ['/pipelines', '/sessions'] },
+    { label: 'Администрирование', paths: ['/permissions', '/settings/ldap'] },
+    { label: 'Информация', paths: ['/about'] },
+  ];
 
   return (
     <aside
-      className={clsx(
-        'bg-white dark:bg-gray-800 shadow-sm border-r border-gray-200 dark:border-gray-700 flex-shrink-0 overflow-x-hidden transition-[width] duration-300', // overflow-x-hidden для скрытия горизонтального скролла
-        collapsed ? 'w-16' : 'w-64',
-      )}
+      className={clsx('fde-sidebar', collapsed && 'fde-sidebar-collapsed')}
     >
-      <nav className='p-4'>
-        <ul className='space-y-2'>{renderNavigationItems()}</ul>
+      <nav aria-label='Основная навигация'>
+        {groups.map((group) => {
+          const items = group.paths.flatMap((path) =>
+            visibleItems.filter((item) => item.path === path),
+          );
+          if (!items.length) return null;
+          return (
+            <div className='fde-nav-group' key={group.label}>
+              {!collapsed && group.label !== 'Информация' && (
+                <p className='fde-nav-label'>{group.label}</p>
+              )}
+              <ul>
+                {items.map((item) => (
+                  <li key={item.path}>
+                    <NavLink
+                      to={item.path}
+                      onClick={onNavigate}
+                      aria-label={item.name}
+                      title={collapsed ? item.name : undefined}
+                      className={({ isActive }) =>
+                        clsx('fde-nav-link', isActive && 'fde-nav-active')
+                      }
+                    >
+                      <span className='fde-nav-icon' aria-hidden='true'>
+                        {item.icon}
+                      </span>
+                      {!collapsed && <span>{item.name}</span>}
+                    </NavLink>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+        {isLoadingContext && (
+          <span className='sr-only' role='status'>
+            Загрузка доступных разделов
+          </span>
+        )}
       </nav>
     </aside>
   );
@@ -143,10 +132,34 @@ export const Sidebar = ({ collapsed = false }: SidebarProps) => {
 
 // Иконки (без изменений)
 const PipelineIcon = () => (
-  <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
-    <circle cx='6' cy='12' r='2' stroke='currentColor' strokeWidth={2} fill='none' />
-    <circle cx='18' cy='12' r='2' stroke='currentColor' strokeWidth={2} fill='none' />
-    <path d='M8 12 L15 12' stroke='currentColor' strokeWidth={2} strokeLinecap='round' />
+  <svg
+    className='w-5 h-5'
+    fill='none'
+    viewBox='0 0 24 24'
+    stroke='currentColor'
+  >
+    <circle
+      cx='6'
+      cy='12'
+      r='2'
+      stroke='currentColor'
+      strokeWidth={2}
+      fill='none'
+    />
+    <circle
+      cx='18'
+      cy='12'
+      r='2'
+      stroke='currentColor'
+      strokeWidth={2}
+      fill='none'
+    />
+    <path
+      d='M8 12 L15 12'
+      stroke='currentColor'
+      strokeWidth={2}
+      strokeLinecap='round'
+    />
     <path
       d='M15 12 L16.5 10.5 M15 12 L16.5 13.5'
       stroke='currentColor'
@@ -158,7 +171,12 @@ const PipelineIcon = () => (
 );
 
 const SessionIcon = () => (
-  <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+  <svg
+    className='w-5 h-5'
+    fill='none'
+    viewBox='0 0 24 24'
+    stroke='currentColor'
+  >
     <path
       strokeLinecap='round'
       strokeLinejoin='round'
@@ -169,7 +187,12 @@ const SessionIcon = () => (
 );
 
 const PermissionsIcon = () => (
-  <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor'>
+  <svg
+    className='w-5 h-5'
+    fill='none'
+    viewBox='0 0 24 24'
+    stroke='currentColor'
+  >
     <path
       strokeLinecap='round'
       strokeLinejoin='round'

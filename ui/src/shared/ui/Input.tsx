@@ -53,11 +53,12 @@ export const Input: React.FC<InputProps> = ({
   const inputId = props.id || generatedId;
   const sizeClasses: Record<InputSize, string> = {
     sm: 'py-1 px-3 text-sm',
-    md: 'py-2 px-4 text-base',
+    md: 'py-2 px-3 text-sm',
     lg: 'py-3 px-6 text-lg',
   };
 
-  const baseClasses = 'w-full rounded border focus:outline-none transition-all duration-200';
+  const baseClasses =
+    'fde-input w-full rounded border focus:outline-none transition-colors duration-150';
 
   const variantClasses = clsx({
     'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-gray-600 dark:focus:border-blue-400 dark:focus:ring-blue-900':
@@ -183,12 +184,12 @@ export const Textarea: React.FC<
 }) => {
   const sizeClasses: Record<InputSize, string> = {
     sm: 'py-1 px-3 text-sm',
-    md: 'py-2 px-4 text-base',
+    md: 'py-2 px-3 text-sm',
     lg: 'py-3 px-6 text-lg',
   };
 
   const baseClasses =
-    'w-full rounded border focus:outline-none transition-all duration-200 resize-none';
+    'fde-input w-full rounded border focus:outline-none transition-colors duration-150 resize-none';
 
   const variantClasses = clsx({
     'border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:border-gray-600 dark:focus:border-blue-400 dark:focus:ring-blue-900':

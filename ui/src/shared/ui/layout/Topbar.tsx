@@ -1,19 +1,35 @@
-import { useState } from 'react';
+import { useState, type Ref } from 'react';
 import { useAuth } from '../../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { authApi } from '../../../features/auth/api/authApi';
 import { useTheme } from '../../../context/ThemeContext';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 
 interface TopbarProps {
   onToggleSidebar: () => void;
+  navigationExpanded?: boolean;
+  toggleRef?: Ref<HTMLButtonElement>;
 }
 
-export const Topbar = ({ onToggleSidebar }: TopbarProps) => {
+export const Topbar = ({
+  onToggleSidebar,
+  navigationExpanded,
+  toggleRef,
+}: TopbarProps) => {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const section = pathname.startsWith('/pipelines')
+    ? 'Пайплайны'
+    : pathname.startsWith('/sessions')
+      ? 'Сессии'
+      : pathname.startsWith('/permissions')
+        ? 'Права доступа'
+        : pathname.startsWith('/settings')
+          ? 'Настройки'
+          : 'О системе';
 
   const handleLogout = async () => {
     try {
@@ -36,14 +52,19 @@ export const Topbar = ({ onToggleSidebar }: TopbarProps) => {
 
   return (
     <>
-      <header className='bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 h-16 flex-shrink-0'>
-        <div className='flex justify-between items-center px-6 h-full'>
+      <header className='fde-topbar'>
+        <div className='fde-topbar-inner'>
           {/* Левая часть: кнопка сворачивания + логотип */}
-          <div className='flex items-center space-x-3'>
+          <div className='fde-topbar-brand'>
             <button
               onClick={onToggleSidebar}
-              className='p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
-              aria-label='Toggle sidebar'
+              className='fde-icon-button'
+              ref={toggleRef}
+              aria-label={
+                navigationExpanded ? 'Свернуть навигацию' : 'Открыть навигацию'
+              }
+              aria-expanded={navigationExpanded}
+              aria-controls='fde-navigation'
             >
               <svg
                 className='w-6 h-6 text-gray-600 dark:text-gray-300'
@@ -61,19 +82,24 @@ export const Topbar = ({ onToggleSidebar }: TopbarProps) => {
             </button>
 
             <div className='flex items-center space-x-2'>
-              <div className='flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg'>
+              <div className='fde-brand-mark'>
                 <span className='text-white font-bold text-lg'>F</span>
               </div>
-              <h1 className='text-xl font-bold text-gray-900 dark:text-white'>FDE</h1>
+              <span className='fde-brand-name'>FDE</span>
             </div>
+            <span className='fde-section-name'>{section}</span>
           </div>
 
           {/* Правая часть: переключатель темы + пользователь */}
-          <div className='flex items-center space-x-4'>
+          <div className='fde-topbar-actions'>
             <button
               onClick={toggleTheme}
-              className='p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors'
-              aria-label='Toggle theme'
+              className='fde-icon-button'
+              aria-label={
+                theme === 'light'
+                  ? 'Включить тёмную тему'
+                  : 'Включить светлую тему'
+              }
             >
               {theme === 'light' ? (
                 <svg
@@ -106,13 +132,13 @@ export const Topbar = ({ onToggleSidebar }: TopbarProps) => {
                       {user.login.charAt(0).toUpperCase()}
                     </span>
                   </div>
-                  <span className='text-sm font-medium text-gray-700 dark:text-gray-200'>
+                  <span className='fde-account-name' title={user.login}>
                     {user.login}
                   </span>
                 </div>
                 <button
                   onClick={handleLogoutClick}
-                  className='bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors'
+                  className='fde-logout-button'
                 >
                   Выйти
                 </button>

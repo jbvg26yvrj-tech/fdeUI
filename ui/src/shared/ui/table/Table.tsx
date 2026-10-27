@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
+import './table.css';
 import { Pagination } from './components/Pagination';
 import { TableHeader } from './components/TableHeader';
 import { TableBody } from './components/TableBody';
@@ -134,7 +135,7 @@ export const Table = <T extends object>({
 
   // Дефолтный рендер карточки на основе колонок (если renderCard не передан)
   const defaultRenderCard = (item: T) => (
-    <div className='border rounded-lg p-4 shadow-sm bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700'>
+    <div className='fde-entity-card p-4'>
       {columns.map(col => (
         <div key={col.key as string} className='text-sm'>
           <span className='font-medium text-gray-600 dark:text-gray-400'>{col.title}:</span>{' '}
@@ -152,13 +153,13 @@ export const Table = <T extends object>({
     <div
       ref={tableContainerRef}
       className={clsx(
-        'w-full bg-white dark:bg-gray-900 rounded-lg shadow min-w-0 flex flex-col',
+        'fde-table w-full min-w-0 flex flex-col',
         className,
         isResizing && 'select-none',
       )}
     >
       {/* Верхняя панель: фильтры и, в карточном режиме, сортировка */}
-      <div className='border-b border-gray-200 dark:border-gray-700'>
+      <div className='fde-table-toolbar'>
         {showFilters && (
           <TableFilters
             columns={columns}
@@ -187,7 +188,7 @@ export const Table = <T extends object>({
       </div>
 
       {/* Контент: таблица или карточки */}
-      <div className={clsx('flex-1', displayMode === 'cards' ? 'p-4' : '')}>
+      <div className={clsx('relative min-w-0 flex-1', displayMode === 'cards' ? 'p-4' : '')}>
         {loading && (
           <div className='absolute inset-0 bg-white dark:bg-gray-900 bg-opacity-50 dark:bg-opacity-50 flex items-center justify-center z-10'>
             <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 dark:border-blue-400'></div>
@@ -195,9 +196,9 @@ export const Table = <T extends object>({
         )}
 
         {displayMode === 'table' ? (
-          <div className='overflow-x-auto min-w-0'>
+          <div className='fde-table-scroll overflow-x-auto min-w-0'>
             <table
-              className='min-w-full divide-y divide-gray-200 table-fixed'
+              className='fde-table-grid min-w-full table-fixed'
               style={{ tableLayout: 'fixed', width: '99%', minWidth: '99%' }}
             >
               <colgroup>
@@ -254,9 +255,7 @@ export const Table = <T extends object>({
                 );
               })
             ) : (
-              <div className='col-span-full text-center py-8 text-gray-500 dark:text-gray-400'>
-                {emptyMessage}
-              </div>
+              <div className='fde-table-empty col-span-full text-center py-8'>{emptyMessage}</div>
             )}
           </div>
         )}
@@ -264,7 +263,7 @@ export const Table = <T extends object>({
 
       {/* Пагинация (липкая снизу) */}
       {showPagination && (
-        <div className='bottom-0 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700'>
+        <div className='fde-table-footer'>
           <Pagination
             currentPage={numberPage}
             totalPages={totalPages}

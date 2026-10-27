@@ -99,9 +99,12 @@ export const createCheckboxColumn = <T,>(
   render: (value: unknown) => {
     const boolValue = Boolean(value);
     return (
-      <div className='truncate min-w-0 dark:text-gray-100' style={{ minWidth: 0 }}>
-        {boolValue ? '🟢 Да' : '🔴 Нет'}
-      </div>
+      <span
+        className={`fde-status ${boolValue ? 'fde-status-positive' : 'fde-status-neutral'}`}
+        title={boolValue ? 'Да' : 'Нет'}
+      >
+        {boolValue ? 'Да' : 'Нет'}
+      </span>
     );
   },
 });

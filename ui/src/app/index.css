@@ -71,3 +71,193 @@ html.dark select:-webkit-autofill:focus {
     transform: translateX(100%);
   }
 }
+
+:root {
+  --fde-ink: #172b46;
+  --fde-muted: #64748b;
+  --fde-border: #dce3ec;
+  --fde-surface: #ffffff;
+  --fde-canvas: #f4f7fb;
+  --fde-accent: #315ee8;
+  --fde-accent-soft: #edf2ff;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color: var(--fde-ink);
+  background: var(--fde-canvas);
+  font-synthesis: none;
+}
+.dark {
+  --fde-ink: #e6edf7;
+  --fde-muted: #a3b2c7;
+  --fde-border: #334155;
+  --fde-surface: #192638;
+  --fde-canvas: #111c2c;
+  --fde-accent: #8ba9ff;
+  --fde-accent-soft: #253b61;
+  color-scheme: dark;
+}
+body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+button:not(:disabled),
+select:not(:disabled) {
+  cursor: pointer;
+}
+:where(button, a, input, select, textarea):focus-visible {
+  outline: 2px solid var(--fde-accent);
+  outline-offset: 3px;
+}
+input[type='checkbox'] {
+  accent-color: #315ee8;
+  width: 16px;
+  height: 16px;
+}
+.fde-panel {
+  background: var(--fde-surface);
+  border: 1px solid var(--fde-border);
+  border-radius: 12px;
+  padding: 24px;
+}
+.fde-page-title {
+  color: var(--fde-ink);
+  font-size: clamp(1.35rem, 2.2vw, 1.75rem);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+}
+.fde-section {
+  border-top: 1px solid var(--fde-border);
+  padding-top: 24px;
+}
+.fde-button {
+  border: 1px solid transparent;
+  border-radius: 8px;
+  font-weight: 600;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+.fde-button:focus-visible {
+  outline: 2px solid var(--fde-accent);
+  outline-offset: 3px;
+}
+.fde-button--primary {
+  background: #315ee8;
+  color: #fff;
+}
+.fde-button--primary:hover:not(:disabled) {
+  background: #254cc5;
+}
+.fde-button--secondary,
+.fde-button--outlined {
+  background: var(--fde-surface);
+  color: var(--fde-ink);
+  border-color: var(--fde-border);
+}
+.fde-button--secondary:hover:not(:disabled),
+.fde-button--outlined:hover:not(:disabled) {
+  background: var(--fde-canvas);
+}
+.fde-button--error {
+  background: #bd303b;
+  color: white;
+}
+.fde-button--success {
+  background: #147d59;
+  color: white;
+}
+.fde-button--warning {
+  background: #f5c94b;
+  color: #3b2a06;
+}
+.fde-button--info {
+  background: #13758b;
+  color: white;
+}
+.fde-button--text {
+  color: var(--fde-ink);
+}
+.fde-button--textPrimary,
+.fde-button--outlinedPrimary {
+  color: var(--fde-accent);
+}
+.fde-button--outlinedPrimary {
+  border-color: var(--fde-accent);
+}
+.fde-button--textError,
+.fde-button--outlinedError {
+  color: #c43a45;
+}
+.dark .fde-button--textError,
+.dark .fde-button--outlinedError {
+  color: #ffa3ab;
+}
+.fde-button--outlinedError {
+  border-color: currentColor;
+}
+.fde-button--text:hover:not(:disabled),
+.fde-button--textPrimary:hover:not(:disabled),
+.fde-button--outlinedPrimary:hover:not(:disabled) {
+  background: var(--fde-accent-soft);
+}
+.fde-button--textError:hover:not(:disabled),
+.fde-button--outlinedError:hover:not(:disabled) {
+  background: color-mix(in srgb, #c43a45 10%, transparent);
+}
+.fde-input {
+  border-radius: 8px;
+}
+.fde-settings select {
+  min-height: 40px;
+  border-radius: 8px;
+}
+.fde-settings fieldset {
+  min-width: 0;
+}
+.fde-settings fieldset:disabled {
+  opacity: 0.65;
+}
+.fde-permission-nav {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: 4px;
+  background: var(--fde-surface);
+  border: 1px solid var(--fde-border);
+  border-radius: 10px;
+}
+.fde-permission-nav button {
+  padding: 9px 13px;
+  white-space: nowrap;
+  border-radius: 7px;
+  color: var(--fde-muted);
+  font-weight: 550;
+}
+.fde-permission-nav button[aria-current='page'] {
+  background: var(--fde-accent-soft);
+  color: var(--fde-accent);
+}
+.fde-permission-nav button:hover {
+  color: var(--fde-ink);
+}
+@media (max-width: 640px) {
+  .fde-panel {
+    padding: 18px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

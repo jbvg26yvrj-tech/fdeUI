@@ -88,19 +88,19 @@ export const Pagination: React.FC<PaginationProps> = ({
     <div
       ref={outerRef}
       className={clsx(
-        'px-4 py-3 border-t border-gray-200 dark:border-gray-700',
+        'fde-table-pagination px-4 py-3',
         'flex flex-wrap items-center justify-between gap-2',
         'max-[620px]:flex-col max-[620px]:items-stretch',
         className,
       )}
     >
       <div className='text-sm text-gray-700 dark:text-gray-300 whitespace-nowrap'>
-        Показано {startItem}-{endItem} из {totalCount}
+        Показано {startItem}–{endItem} из {totalCount}
       </div>
 
       <div
         className={clsx(
-          'flex items-center',
+          'flex items-center flex-wrap gap-y-2',
           isNarrow ? 'flex-col items-center space-y-1' : 'flex-row space-x-1 flex-nowrap',
           'justify-center',
         )}
@@ -114,7 +114,7 @@ export const Pagination: React.FC<PaginationProps> = ({
           Назад
         </Button>
 
-        <div className='hidden sm:flex items-center space-x-1'>
+        <div className='hidden sm:flex flex-wrap items-center gap-y-1 space-x-1'>
           {pageNumbers.map((item, index) => {
             if (typeof item === 'string') {
               return (

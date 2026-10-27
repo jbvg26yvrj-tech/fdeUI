@@ -46,111 +46,26 @@ export const Button: React.FC<ButtonProps> = ({
   disabled,
   ...props
 }) => {
-  const baseClasses =
-    'font-bold rounded focus:outline-none focus:ring-0 transition-all duration-200 relative inline-flex items-center justify-center';
+  const baseClasses = 'fde-button relative inline-flex items-center justify-center';
 
   const variantClasses: Record<ButtonVariant, string> = {
-    primary: clsx(
-      'bg-blue-600 text-white dark:bg-blue-700',
-      !(disabled || isLoading) && [
-        'hover:bg-blue-700 dark:hover:bg-blue-800',
-        'active:bg-blue-800 dark:active:bg-blue-900',
-        'hover:shadow-lg hover:shadow-blue-500/25 dark:hover:shadow-blue-800/50',
-        'active:shadow-inner',
-      ],
-    ),
-    secondary: clsx(
-      'bg-gray-100 text-gray-800 border border-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600',
-      !(disabled || isLoading) && [
-        'hover:bg-gray-200 dark:hover:bg-gray-600',
-        'active:bg-gray-300 dark:active:bg-gray-500',
-        'hover:shadow-lg hover:shadow-gray-400/20 dark:hover:shadow-gray-700/50',
-        'active:shadow-inner',
-      ],
-    ),
-    error: clsx(
-      'bg-red-600 text-white dark:bg-red-700',
-      !(disabled || isLoading) && [
-        'hover:bg-red-700 dark:hover:bg-red-800',
-        'active:bg-red-800 dark:active:bg-red-900',
-        'hover:shadow-lg hover:shadow-red-500/25 dark:hover:shadow-red-800/50',
-        'active:shadow-inner',
-      ],
-    ),
-    success: clsx(
-      'bg-green-600 text-white dark:bg-green-700',
-      !(disabled || isLoading) && [
-        'hover:bg-green-700 dark:hover:bg-green-800',
-        'active:bg-green-800 dark:active:bg-green-900',
-        'hover:shadow-lg hover:shadow-green-500/25 dark:hover:shadow-green-800/50',
-        'active:shadow-inner',
-      ],
-    ),
-    warning: clsx(
-      'bg-yellow-500 text-white dark:bg-yellow-600',
-      !(disabled || isLoading) && [
-        'hover:bg-yellow-600 dark:hover:bg-yellow-700',
-        'active:bg-yellow-700 dark:active:bg-yellow-800',
-        'hover:shadow-lg hover:shadow-yellow-500/25 dark:hover:shadow-yellow-700/50',
-        'active:shadow-inner',
-      ],
-    ),
-    info: clsx(
-      'bg-cyan-500 text-white dark:bg-cyan-600',
-      !(disabled || isLoading) && [
-        'hover:bg-cyan-600 dark:hover:bg-cyan-700',
-        'active:bg-cyan-700 dark:active:bg-cyan-800',
-        'hover:shadow-lg hover:shadow-cyan-500/25 dark:hover:shadow-cyan-700/50',
-        'active:shadow-inner',
-      ],
-    ),
-    text: clsx(
-      'bg-transparent text-gray-700 dark:text-gray-300',
-      !(disabled || isLoading) && [
-        'hover:bg-gray-100 dark:hover:bg-gray-800',
-        'active:bg-gray-200 dark:active:bg-gray-700',
-      ],
-    ),
-    textPrimary: clsx(
-      'bg-transparent text-blue-600 dark:text-blue-400',
-      !(disabled || isLoading) && [
-        'hover:bg-blue-50 dark:hover:bg-blue-900/30',
-        'active:bg-blue-100 dark:active:bg-blue-900/50',
-      ],
-    ),
-    textError: clsx(
-      'bg-transparent text-red-600 dark:text-red-400',
-      !(disabled || isLoading) && [
-        'hover:bg-red-50 dark:hover:bg-red-900/30',
-        'active:bg-red-100 dark:active:bg-red-900/50',
-      ],
-    ),
-    outlined: clsx(
-      'bg-transparent border border-gray-300 text-gray-700 dark:border-gray-600 dark:text-gray-300',
-      !(disabled || isLoading) && [
-        'hover:bg-gray-50 dark:hover:bg-gray-800',
-        'active:bg-gray-100 dark:active:bg-gray-700',
-      ],
-    ),
-    outlinedPrimary: clsx(
-      'bg-transparent border border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400',
-      !(disabled || isLoading) && [
-        'hover:bg-blue-50 dark:hover:bg-blue-900/30',
-        'active:bg-blue-100 dark:active:bg-blue-900/50',
-      ],
-    ),
-    outlinedError: clsx(
-      'bg-transparent border border-red-500 text-red-600 dark:border-red-400 dark:text-red-400',
-      !(disabled || isLoading) && [
-        'hover:bg-red-50 dark:hover:bg-red-900/30',
-        'active:bg-red-100 dark:active:bg-red-900/50',
-      ],
-    ),
+    primary: 'fde-button--primary',
+    secondary: 'fde-button--secondary',
+    error: 'fde-button--error',
+    success: 'fde-button--success',
+    warning: 'fde-button--warning',
+    info: 'fde-button--info',
+    text: 'fde-button--text',
+    textPrimary: 'fde-button--textPrimary',
+    textError: 'fde-button--textError',
+    outlined: 'fde-button--outlined',
+    outlinedPrimary: 'fde-button--outlinedPrimary',
+    outlinedError: 'fde-button--outlinedError',
   };
 
   const sizeClasses: Record<ButtonSize, string> = {
     sm: 'py-1 px-3 text-sm gap-1',
-    md: 'py-2 px-4 text-base gap-2',
+    md: 'py-2 px-4 text-sm gap-2',
     lg: 'py-3 px-6 text-lg gap-2',
   };
 
