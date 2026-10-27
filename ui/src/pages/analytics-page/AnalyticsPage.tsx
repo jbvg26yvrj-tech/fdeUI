@@ -342,7 +342,7 @@ function AnalyticsContent({
               setPipelineSearch(e.target.value);
               setLookupPage(0);
             }}
-            placeholder='Название потока'
+            placeholder='Название или ID пайплайна'
           />
         </label>
         <label>

@@ -162,7 +162,12 @@ public class AnalyticsRepository  {
         if(access==null)access=cb.conjunction();
         if(search==null||search.isBlank())return access;
         // Escape SQL LIKE wildcards so user text remains a literal search.
-        String literal=search.toLowerCase(Locale.ROOT).replace("!","!!").replace("%","!%").replace("_","!_");
-        return cb.and(access,cb.like(cb.lower(p.get("pipelineName")),"%"+literal+"%",'!'));
+        String value=search.trim();
+        String literal=value.toLowerCase(Locale.ROOT).replace("!","!!").replace("%","!%").replace("_","!_");
+        Predicate match=cb.like(cb.lower(p.get("pipelineName")),"%"+literal+"%",'!');
+        if(value.matches("(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")) {
+            match=cb.or(match,cb.equal(p.get("id"),UUID.fromString(value)));
+        }
+        return cb.and(access,match);
     }
 }

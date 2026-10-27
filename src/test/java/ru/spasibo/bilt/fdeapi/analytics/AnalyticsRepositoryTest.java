@@ -58,6 +58,17 @@ class AnalyticsRepositoryTest {
   assertThat(service.sessions(query(),0,20,"FAILED","missing").content()).isEmpty();
   assertThat(service.overview(query()).extra().consecutiveFailures()).isNull();
  }
+ @Test void searchesPipelineIdWithoutBypassingAccessScope() {
+  UUID allowed=UUID.fromString("abcdef12-3456-7890-abcd-123456789abc");
+  db.update("update pipelines.pipelines set id=? where id=?",allowed,pipe);
+  when(scope.pipelines()).thenReturn((p,q,cb)->cb.equal(p.get("id"),allowed));
+  var found=service.pipelines("  "+allowed.toString().toUpperCase(Locale.ROOT)+"  ",0,10);
+  assertThat(found.totalElements()).isEqualTo(1);
+  assertThat(found.content()).extracting(PipelineOption::id).containsExactly(allowed);
+  assertThat(service.pipelines(other.toString(),0,10).content()).isEmpty();
+  assertThat(service.pipelines("PIPE",0,10).content()).extracting(PipelineOption::id).containsExactly(allowed);
+  assertThat(service.pipelines("invalid-id",0,10).content()).isEmpty();
+ }
  @Test void nullSizeNeverBecomesConfirmedVolume() {
   db.execute("alter table sessions.processed_files alter column file_size drop not null");
   UUID id=session(pipe,"SUCCESS",from);task(1,id,"MinioUploadTask");file(1,1,"SUCCESS",0);
