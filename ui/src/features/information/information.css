@@ -1,0 +1,108 @@
+.information-blocks {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 2rem;
+}
+.information-block h2 {
+  font-size: 1.3rem;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.information-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.65;
+  margin-top: 0.75rem;
+}
+.information-block ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem 1.5rem;
+  margin-top: 1rem;
+}
+.information-block a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+.information-editor {
+  max-width: 960px;
+  margin: auto;
+  padding: 1rem;
+}
+.information-editor h1 {
+  margin: 1.5rem 0 0.75rem;
+}
+.information-editor fieldset {
+  min-width: 0;
+}
+.information-editor label {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.85rem 0;
+  font-weight: 500;
+}
+.information-editor input,
+.information-editor textarea,
+.information-editor select {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #94a3b8;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: inherit;
+  font-weight: 400;
+}
+.information-editor textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+.information-editor button {
+  padding: 0.5rem 0.8rem;
+  border: 1px solid #94a3b8;
+  border-radius: 0.45rem;
+}
+.information-editor button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.information-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  margin: 1rem 0;
+}
+.information-edit-block {
+  margin: 1.5rem 0;
+}
+.information-edit-block legend {
+  font-weight: 650;
+  font-size: 1.1rem;
+}
+.information-link-row {
+  padding: 0.7rem 1rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.6rem;
+  margin: 0.8rem 0;
+}
+.information-save {
+  background: #1d4ed8;
+  color: white;
+}
+.information-notice {
+  padding: 1rem;
+  border-left: 3px solid #2563eb;
+  margin: 1rem 0;
+}
+.information-error {
+  border-color: #dc2626;
+}
+.dark .information-block a {
+  color: #93c5fd;
+}
+.information-editor :focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 3px;
+}

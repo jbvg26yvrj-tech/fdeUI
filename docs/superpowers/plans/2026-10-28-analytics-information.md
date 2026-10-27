@@ -1,0 +1,9 @@
+# Analytics and system information improvement
+User explicitly authorizes UI changes, editable information and production readiness tests. Work in Documents/api-main feature/ldap-access; no production deployment authorized, existing teststand deployment remains authorized.
+1. Analytics UI: compact key metrics, translated statuses with unchanged wire values, help disclosure, meaningful accessible chart scales/empty states/drilldown, clear filters preserving timezone/query/RLS contracts; focused tests.
+2. Information: persisted ordered blocks title/body/links/audience ALL or ADMIN. Authenticated reads server-filtered; ADMIN editor settings/info; version conflict detection; bounded input HTTP(S) links only, React text no raw HTML; migration additive and tests authorization/validation/persistence.
+3. Sidebar analytics chart icon, logs document icon; fix existing typecheck failures when verified.
+4. Production audit: inspect deployment/config migrations executor assumptions auth/Loki/LDAP resource/performance constraints. Run full frontend/backend tests and typecheck/build. Evidence-based readiness report, cannot claim production-ready without real executor/AD/Loki and targetconfig validation. Independent diff review, deploy teststand, browser verify, document rollback.
+Ownership: analytics agent owns analytics UI/components/monitoring.css and tests. Information agent owns new backendinformation/migration+UIinformation/About+App/settingsnav and tests. Audit agent readonly except report underdocs. Root owns Sidebar/typefix/integration/deployment.
+
+Implementation complete; independent review corrected last-success start-time label. Validation: Java205/205, UI77/77, TypeScript clean, production build successful. Actual PostgreSQL migration/API smoke and browser verification pending.

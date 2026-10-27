@@ -1,5 +1,9 @@
+import { useRead } from '../../features/analytics/useRead';
+import { informationApi } from '../../features/information/api';
+import { InformationBlocks } from '../../features/information/InformationBlocks';
 import { useUserContext } from '../../shared/hooks/useUserContext';
 export default function AboutPage() {
+  const information = useRead('information', informationApi.read);
   const { isLoading, permissions, roles } = useUserContext();
   const hasPages =
     roles.includes('ADMIN') ||
@@ -31,6 +35,17 @@ export default function AboutPage() {
           </div>
         ))}
       </dl>
+      {information.loading && (
+        <p role='status' className='mt-8'>
+          Загрузка инструкций…
+        </p>
+      )}
+      {information.error && (
+        <p role='alert' className='mt-8'>
+          Не удалось загрузить инструкции: {information.error}
+        </p>
+      )}
+      {information.data && <InformationBlocks blocks={information.data.blocks} />}
       {!isLoading && !hasPages && (
         <aside className='mt-8 border-l-4 border-blue-600 bg-blue-50 dark:bg-blue-950 p-5'>
           <h2 className='font-semibold'>Учётная запись готова. Доступ ещё не назначен.</h2>

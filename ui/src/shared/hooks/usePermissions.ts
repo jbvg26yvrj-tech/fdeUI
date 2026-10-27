@@ -66,23 +66,23 @@ export const usePermissions = () => {
 
   const permissions = useMemo(() => {
     return {
-      canPipelineDetails: hasResourcePermission('api.pipelines.get'),
+      canPipelineDetails: hasPermission('api.pipelines.get'),
       canPipelineSchedule: isAdmin,
       canPipelineUnschedule: isAdmin,
       canPipelineCreate: isAdmin,
       canPipelineUpdate: isAdmin,
       canPipelineDelete: isAdmin,
-      canSessionProgressOpen: hasResourcePermission('api.sessions.get'),
-      canSessionProgressDetails: hasResourcePermission('api.sessions.get'),
-      canPipelineSessions: hasResourcePermission('api.sessions.list'),
+      canSessionProgressOpen: hasPermission('api.sessions.get'),
+      canSessionProgressDetails: hasPermission('api.sessions.get'),
+      canPipelineSessions: hasPermission('api.sessions.list'),
       canScheduleCreate: isAdmin,
-      canScheduleGet: hasResourcePermission('api.schedules.get'),
+      canScheduleGet: hasPermission('api.schedules.get'),
       canScheduleUpdate: isAdmin,
       canScheduleDelete: isAdmin,
       canTriggerManual: isAdmin,
       canTriggerStop: isAdmin,
     };
-  }, [hasResourcePermission, isAdmin]);
+  }, [hasPermission, isAdmin]);
 
   return {
     isLoading,

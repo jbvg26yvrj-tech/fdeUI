@@ -36,7 +36,7 @@ export const RoleRlsTable: React.FC<TableProps<RoleRlsDto>> = ({
   const [editingRls, setEditingRls] = useState<RoleRlsDto | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [resources, setResources] = useState<ResourceDto[]>([]);
+  const [resources] = useState<ResourceDto[]>([]);
   const [selectedResourceId, setSelectedResourceId] = useState<string>('');
   const [actionLoading, setActionLoading] = React.useState(false);
 

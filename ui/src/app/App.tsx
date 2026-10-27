@@ -21,6 +21,7 @@ const AboutPage = lazy(() => import('../pages/about-page'));
 const AnalyticsPage = lazy(() => import('../pages/analytics-page/AnalyticsPage'));
 const LogsPage = lazy(() => import('../pages/logs-page/LogsPage'));
 const LokiSettingsPage = lazy(() => import('../pages/settings-page/LokiSettingsPage'));
+const InformationSettingsPage = lazy(() => import('../pages/settings-page/InformationSettingsPage'));
 const LdapSettingsPage = lazy(() => import('../pages/settings-page/LdapSettingsPage'));
 
 const PageLoader = () => (
@@ -223,6 +224,7 @@ function AppContent() {
         <Route path='/analytics/pipelines/:id' element={<ProtectedRoute><Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense></ProtectedRoute>} />
         <Route path='/logs' element={<ProtectedRoute><Suspense fallback={<PageLoader />}><LogsPage /></Suspense></ProtectedRoute>} />
         <Route path='/settings/loki' element={<ProtectedRoute><Suspense fallback={<PageLoader />}><LokiSettingsPage /></Suspense></ProtectedRoute>} />
+        <Route path='/settings/information' element={<ProtectedRoute><Suspense fallback={<PageLoader />}><InformationSettingsPage /></Suspense></ProtectedRoute>} />
         <Route path='/' element={<LandingRoute />} />
         <Route
           path='*'

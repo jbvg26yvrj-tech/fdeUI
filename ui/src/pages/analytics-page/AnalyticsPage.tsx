@@ -11,17 +11,19 @@ import {
 } from '../../features/analytics/api';
 import { useRead } from '../../features/analytics/useRead';
 import '../../features/analytics/monitoring.css';
-const statusSeries = [
-  { key: 'success', name: 'SUCCESS', color: '#269b79' },
-  { key: 'failed', name: 'FAILED', color: '#df6572' },
-  { key: 'aborted', name: 'ABORTED', color: '#ad80cd' },
-  { key: 'active', name: 'ACTIVE', color: '#5d91ef' },
-  { key: 'prepare', name: 'PREPARE', color: '#c59b40' },
+export const statusSeries = [
+  { key: 'success', name: 'Успешно', status: 'SUCCESS', color: '#269b79' },
+  { key: 'failed', name: 'Ошибка', status: 'FAILED', color: '#df6572' },
+  { key: 'aborted', name: 'Прервано', status: 'ABORTED', color: '#ad80cd' },
+  { key: 'active', name: 'Выполняется', status: 'ACTIVE', color: '#5d91ef' },
+  { key: 'prepare', name: 'Подготовка', status: 'PREPARE', color: '#c59b40' },
   { key: 'unknown', name: 'Другой статус', color: '#8d9aaa' },
 ] as const;
 type SeriesKey = keyof Totals;
-type Metric = { key: SeriesKey; name: string; color: string };
-function Chart({
+type Metric = { key: SeriesKey; name: string; color: string; status?: string };
+const statusLabel = (value: string) =>
+  statusSeries.find(s => 'status' in s && s.status === value)?.name ?? value;
+export function Chart({
   title,
   rows,
   metrics,
@@ -44,7 +46,10 @@ function Chart({
         : Math.max(...metrics.map(m => Number(row[m.key] ?? 0))),
     ),
   );
-  const cell = 600 / Math.max(1, rows.length);
+  const cell = 540 / Math.max(1, rows.length);
+  const values = rows.flatMap(row => metrics.map(m => row[m.key]));
+  const noMeasurements = values.length > 0 && values.every(v => v === null);
+  const allZero = values.length > 0 && !noMeasurements && values.every(v => v === null || v === 0);
   return (
     <section className='monitor-panel'>
       <h2>{title}</h2>
@@ -57,30 +62,51 @@ function Chart({
         ))}
       </div>
       <svg
-        viewBox='0 0 620 160'
-        role='img'
+        viewBox='0 0 620 190'
+        role='group'
         aria-label={`${title}. Числа и переходы доступны в таблице под графиком.`}
       >
-        <line x1='10' x2='610' y1='140' y2='140' stroke='currentColor' opacity='.25' />
+        {[0, 0.5, 1].map(tick => (
+          <g key={tick} aria-hidden='true'>
+            <line
+              x1='70'
+              x2='610'
+              y1={150 - tick * 120}
+              y2={150 - tick * 120}
+              stroke='currentColor'
+              opacity='.15'
+            />
+            <text x='62' y={154 - tick * 120} textAnchor='end' fill='currentColor' fontSize='11'>
+              {format(maximum * tick)}
+            </text>
+          </g>
+        ))}
         {rows.map((row, index) => {
           let accumulated = 0;
           return metrics.map((metric, j) => {
             const value = row[metric.key];
             if (value === null) return null;
             const h = (Number(value) / maximum) * 120;
-            const y = 140 - h - accumulated;
+            const y = 150 - h - accumulated;
             if (stacked) accumulated += h;
             return (
               <rect
                 key={`${row.time}-${metric.key}`}
-                x={10 + index * cell + (stacked ? 0 : (j * cell) / metrics.length)}
+                x={70 + index * cell + (stacked ? 0 : (j * cell) / metrics.length)}
                 y={y}
                 width={Math.max(0.5, cell / (stacked ? 1 : metrics.length) - 1)}
                 height={h}
+                role='button'
+                tabIndex={value > 0 ? 0 : -1}
+                aria-label={`${row.time.replace('T', ' ')}: ${metric.name} ${format(Number(value))}`}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onSelect(row.time, stacked ? metric.status : undefined);
+                  }
+                }}
                 fill={metric.color}
-                onClick={() =>
-                  onSelect(row.time, stacked && metric.key !== 'unknown' ? metric.name : undefined)
-                }
+                onClick={() => onSelect(row.time, stacked ? metric.status : undefined)}
               >
                 <title>
                   {row.time}: {metric.name} {format(Number(value))}
@@ -95,7 +121,9 @@ function Chart({
         <span>Максимум: {format(maximum)}</span>
         <span>{rows[rows.length - 1]?.time.replace('T', ' ')}</span>
       </div>
-      {!rows.length && <p>Нет данных за выбранный период.</p>}
+      {!rows.length && <p className='monitor-chart-empty'>Нет данных за выбранный период.</p>}
+      {noMeasurements && <p className='monitor-chart-empty'>Нет завершённых сессий.</p>}
+      {allZero && <p className='monitor-chart-empty'>Все значения за период равны нулю.</p>}
       <details>
         <summary>Данные графика и переход к сессиям</summary>
         <div className='monitor-scroll'>
@@ -119,11 +147,7 @@ function Chart({
                       {row[m.key] === null ? (
                         'Нет завершённых сессий'
                       ) : (
-                        <button
-                          onClick={() =>
-                            onSelect(row.time, stacked && m.key !== 'unknown' ? m.name : undefined)
-                          }
-                        >
+                        <button onClick={() => onSelect(row.time, stacked ? m.status : undefined)}>
                           {format(Number(row[m.key]))}
                         </button>
                       )}
@@ -268,12 +292,32 @@ function AnalyticsContent({
   }
   return (
     <section className='monitor-page'>
-      <header>
+      <header className='monitor-heading'>
         <h1 className='fde-page-title'>{id ? 'Аналитика потока' : 'Аналитика'}</h1>
         <p>
           По времени запуска сессии · {zone}
           {testStand ? ' · Тестовый стенд' : ''}
         </p>
+        <details className='monitor-help'>
+          <summary aria-label='Справка об аналитике'>
+            ? <span>Как читать данные</span>
+          </summary>
+          <div>
+            <p>
+              Время запуска — в зоне {zone}. Конец периода не включён. Максимальный период — 366
+              дней.
+            </p>
+            <p>
+              Нажмите столбец или значение в таблице графика, чтобы выбрать сессии. Таблица доступна
+              с клавиатуры.
+            </p>
+            <p>Ошибки: FAILED / (SUCCESS + FAILED). Без завершённых сессий доля не определена.</p>
+            <p>
+              Записи и объём — успешные Download / Upload без дедупликации имён, не сетевой трафик.
+              Отсутствие записей не доказывает отсутствие файлов на источнике.
+            </p>
+          </div>
+        </details>
         {id && (
           <Link
             to={`/analytics?${new URLSearchParams([...query].filter(([key]) => key !== 'pipelineId'))}`}
@@ -385,7 +429,6 @@ function AnalyticsContent({
           </div>
         )}
         <button className='monitor-primary'>Применить</button>
-        <small>Максимальный период — 366 дней.</small>
       </form>
       {overview.loading && <p role='status'>Обновление показателей…</p>}
       {overview.error && (
@@ -402,15 +445,10 @@ function AnalyticsContent({
             {(
               [
                 { key: 'sessions', name: 'Запуски' },
-                ...statusSeries.map(s => ({ key: s.key, name: s.name })),
                 { key: 'errorRate', name: 'Ошибки, %' },
-                { key: 'receivedFiles', name: 'Получено записей' },
-                { key: 'sentFiles', name: 'Отправлено записей' },
-                { key: 'receivedBytes', name: 'Получено, объём' },
-                { key: 'sentBytes', name: 'Отправлено, объём' },
-                { key: 'failedFiles', name: 'Ошибочные записи файлов' },
-                { key: 'skippedFiles', name: 'Пропущенные записи файлов' },
-                { key: 'unknownSizeFiles', name: 'Записи без размера' },
+                { key: 'active', name: 'Выполняется' },
+                { key: 'receivedBytes', name: 'Получено' },
+                { key: 'sentBytes', name: 'Отправлено' },
               ] as { key: SeriesKey; name: string }[]
             ).map(m => (
               <div key={m.key}>
@@ -428,17 +466,30 @@ function AnalyticsContent({
             ))}
           </div>
           {data.extra && (
-            <section className='monitor-panel'>
-              <h2>Результаты за выбранный период</h2>
+            <details className='monitor-panel monitor-diagnostics'>
+              <summary>Диагностика периода</summary>
+              <dl className='monitor-detail-metrics'>
+                {(
+                  [
+                    ['Получено записей', data.summary.receivedFiles],
+                    ['Отправлено записей', data.summary.sentFiles],
+                    ['Ошибочные записи', data.summary.failedFiles],
+                    ['Пропущено записей', data.summary.skippedFiles],
+                    ['Без размера', data.summary.unknownSizeFiles],
+                  ] as const
+                ).map(([name, value]) => (
+                  <div key={name}>
+                    <dt>{name}</dt>
+                    <dd>{value}</dd>
+                  </div>
+                ))}
+              </dl>
               <p>
-                SUCCESS без записей файлов: {data.extra.successfulEmptySessions}. Отсутствие записей
+                Успешно без записей файлов: {data.extra.successfulEmptySessions}. Отсутствие записей
                 не доказывает отсутствие файлов на источнике.
               </p>
               {data.extra.consecutiveFailures !== null && (
-                <p>
-                  Последовательных FAILED в конце выбранного периода:{' '}
-                  {data.extra.consecutiveFailures}.
-                </p>
+                <p>Ошибок подряд в конце периода: {data.extra.consecutiveFailures}.</p>
               )}
               {data.extra.commonErrors.length > 0 && (
                 <>
@@ -464,13 +515,8 @@ function AnalyticsContent({
                   </ul>
                 </>
               )}
-            </section>
+            </details>
           )}
-          <p className='monitor-note'>
-            Файлы и объём — успешные записи операций Download / Upload, без дедупликации имён. Это
-            не сетевой трафик. Ошибки: FAILED / (SUCCESS + FAILED).{' '}
-            {data.summary.errorRate === null ? 'Нет завершённых сессий SUCCESS или FAILED.' : ''}
-          </p>
           {data.warnings?.map((warning, i) => (
             <p role='status' key={i}>
               {warning}
@@ -483,7 +529,7 @@ function AnalyticsContent({
           {id && (
             <p>
               За всю доступную историю: последний запуск — {data.lastStart ?? 'нет'}; последний
-              SUCCESS — {data.lastSuccess ?? 'нет'} ({data.sourceTimeZone}).
+              успешный запуск — {data.lastSuccess ?? 'нет'} ({data.sourceTimeZone}).
             </p>
           )}
           <Chart
@@ -517,7 +563,7 @@ function AnalyticsContent({
           <Chart
             title='Доля ошибочных сессий, %'
             rows={data.series}
-            metrics={[{ key: 'errorRate', name: 'FAILED / (SUCCESS + FAILED)', color: '#df6572' }]}
+            metrics={[{ key: 'errorRate', name: 'Доля ошибок', color: '#df6572' }]}
             onSelect={drill}
           />
         </div>
@@ -535,7 +581,9 @@ function AnalyticsContent({
               {statusSeries
                 .filter(s => s.key !== 'unknown')
                 .map(s => (
-                  <option key={s.key}>{s.name}</option>
+                  <option key={s.key} value={'status' in s ? s.status : ''}>
+                    {s.name}
+                  </option>
                 ))}
             </select>
           </label>
@@ -569,10 +617,7 @@ function AnalyticsContent({
         )}
         {sessions.data && !sessions.error && !sessions.loading && (
           <>
-            <p className='monitor-note'>
-              Найдено: {sessions.data.totalElements}. Итоги и графики выше рассчитаны по всему
-              периоду, независимо от страницы списка.
-            </p>
+            <p className='monitor-note'>Найдено сессий: {sessions.data.totalElements}</p>
             <div className='monitor-scroll'>
               <table>
                 <thead>
@@ -601,7 +646,11 @@ function AnalyticsContent({
                           {s.pipelineName || s.pipelineId}
                         </Link>
                       </td>
-                      <td>{s.status}</td>
+                      <td>
+                        <span className={`monitor-status monitor-status-${s.status.toLowerCase()}`}>
+                          {statusLabel(s.status)}
+                        </span>
+                      </td>
                       <td>
                         {s.receivedFiles} / {bytes(s.receivedBytes)}
                       </td>

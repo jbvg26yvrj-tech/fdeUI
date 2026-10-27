@@ -31,7 +31,7 @@ export const RlsFilterModal: React.FC<RlsFilterModalProps> = ({
   onResourceChange,
 }) => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [filter, setFilter] = useState<RlsFilter>({
+  const [, setFilter] = useState<RlsFilter>({
     conditions: [],
     logicalOperator: 'AND',
   });

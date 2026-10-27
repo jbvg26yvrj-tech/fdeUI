@@ -44,7 +44,7 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
       path: '/analytics',
       page: 'analytics',
       requiredPermissions: ['page.analytics'],
-      icon: <PipelineIcon />,
+      icon: <AnalyticsIcon />,
     },
     {
       name: 'Логи',
@@ -52,7 +52,7 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
       path: '/logs',
       page: 'logs',
       requiredPermissions: ['page.logs'],
-      icon: <SessionIcon />,
+      icon: <LogsIcon />,
     },
     {
       name: 'Права доступа',
@@ -188,5 +188,16 @@ const SettingsIcon = () => (
       d='m9.5 3-.6 2.3-1.6.9L5 5.6 2.5 10l1.7 1.7v1.8L2.5 15 5 19.4l2.3-.6 1.6.9.6 2.3h5l.6-2.3 1.6-.9 2.3.6 2.5-4.4-1.7-1.5v-1.8L21.5 10 19 5.6l-2.3.6-1.6-.9L14.5 3h-5Z'
     />
     <circle cx='12' cy='12.5' r='3' />
+  </svg>
+);
+
+const AnalyticsIcon = () => (
+  <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={1.8} strokeLinecap='round' strokeLinejoin='round'>
+    <path d='M4 4v16h16M8 16v-5m5 5V7m5 9v-3' />
+  </svg>
+);
+const LogsIcon = () => (
+  <svg className='w-5 h-5' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={1.8} strokeLinecap='round' strokeLinejoin='round'>
+    <path d='M14 3H5v18h14V8l-5-5Zm0 0v5h5M8 12h8M8 16h6' />
   </svg>
 );
