@@ -29,8 +29,8 @@ Files: usePermissions.ts, Sidebar.tsx, pipeline list/cards/details, ScheduleSect
 ### Task 3: Review, release and live verification
 - [x] Independently review final diff for authorization bypass, unscoped schedule reads, stale grants and UI regressions.
 - [x] Fix confirmed findings; verify clean diff, tests, UI build.
-- [ ] Commit, archive, deploy using existing backed-up release workflow.
-- [ ] Verify authenticated scoped reads, denied writes even with legacy grants, admin controls, cron rendering in browser. Remove only disposable verification records created for this task, if any.
+- [x] Commit, archive, deploy using existing backed-up release workflow.
+- [x] Verify authenticated scoped reads, denied writes even with legacy grants, admin controls, cron rendering in browser. Remove only disposable verification records created for this task, if any.
 
 ## Verification before release
 - Java: 197 tests passed, /private/tmp/viewer-backend-full.log.
@@ -38,3 +38,10 @@ Files: usePermissions.ts, Sidebar.tsx, pipeline list/cards/details, ScheduleSect
 - Typecheck: 11 pre-existing errors, no new diagnostic signatures (baseline 18).
 - Independent review: schedule concurrency finding fixed with shared four-request semaphore and regression test; no remaining production findings.
 - Stand dispatcher is ClusterIP-only; host has no public dispatcher listener.
+
+## Release verification
+- Deployed source commit d115b79 as fde-local/api:client-viewer-20261027; all four stand pods Ready, HTTPS responds.
+- Server smoke_client_viewer.py PASS: auto read without resource grants; exact source/destination scope; analytics and schedules; legacy write grants denied; admin sections denied; deactivation invalidates access. No pipelines executed or schedules changed.
+- Browser: temporary DWH user sees exactly three DWH-source/destination pipelines, only pipelines/sessions/analytics/about navigation; own two sessions and analytics; schedule empty state without mutation controls. Existing stand fixtures had no schedules, so populated cron rendering verified in component tests.
+- Browser test account deactivated and role detached; administrator session restored.
+- Screenshot: /Users/kirillkolomoec/.codex/visualizations/2026/10/26/01a17768-2a4a-76c1-bb6d-7390ed5217a7/fde-client-viewer.png
