@@ -21,7 +21,7 @@ export const Topbar = ({
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const section = pathname.startsWith('/pipelines')
+  const section = pathname.startsWith('/analytics') ? 'Аналитика' : pathname.startsWith('/logs') ? 'Логи' : pathname.startsWith('/pipelines')
     ? 'Пайплайны'
     : pathname.startsWith('/sessions')
       ? 'Сессии'

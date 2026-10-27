@@ -1,3 +1,4 @@
+import { MemoryRouter } from 'react-router-dom';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import LdapSettingsPage from '../pages/settings-page/LdapSettingsPage';
@@ -34,7 +35,7 @@ describe('LDAP settings', () => {
     api.status.mockResolvedValue({ status: 'NEVER', checked: 0, updated: 0, deactivated: 0 });
     api.test.mockResolvedValue({ success: true, message: 'Соединение установлено' });
     api.save.mockResolvedValue(config);
-    render(<LdapSettingsPage />);
+    render(<LdapSettingsPage />, { wrapper: MemoryRouter });
     await screen.findByLabelText('Адрес сервера');
     expect(screen.getByLabelText('Пароль служебной учётной записи')).toHaveValue('');
     fireEvent.change(screen.getByLabelText('Адрес сервера'), {
@@ -62,7 +63,7 @@ describe('LDAP settings', () => {
       deactivated: 1,
       finishedAt: '2026-10-26T12:00:00Z',
     });
-    render(<LdapSettingsPage />);
+    render(<LdapSettingsPage />, { wrapper: MemoryRouter });
     fireEvent.click(await screen.findByRole('button', { name: 'Синхронизировать сейчас' }));
     await screen.findByText('Готово');
     expect(screen.getByText('Проверено: 7')).toBeInTheDocument();

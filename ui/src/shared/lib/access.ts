@@ -1,6 +1,8 @@
 const pagePermissions: Record<string, string> = {
   pipelines: 'page.pipelines',
   sessions: 'page.sessions',
+  analytics: 'page.analytics',
+  logs: 'page.logs',
   permissions: 'page.permissions',
   'change-datacenter': 'api.pipelines.update',
 };
@@ -15,7 +17,7 @@ export function canAccessPath(path: string, permissions: string[], roles: string
 
 export function landingPath(permissions: string[], roles: string[]): string {
   return (
-    ['/pipelines', '/sessions', '/permissions'].find(path =>
+    ['/pipelines', '/sessions', '/analytics', '/logs', '/permissions'].find(path =>
       canAccessPath(path, permissions, roles),
     ) || '/about'
   );

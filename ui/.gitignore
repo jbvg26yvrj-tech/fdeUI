@@ -27,3 +27,5 @@ build
 
 !.env.example
 
+!src/features/logs/
+!src/features/logs/**

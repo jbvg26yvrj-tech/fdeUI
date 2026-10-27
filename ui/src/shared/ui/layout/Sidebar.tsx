@@ -39,6 +39,8 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
       requiredPermissions: ['page.sessions'],
       icon: <SessionIcon />,
     },
+    { name: 'Аналитика', path: '/analytics', page: 'analytics', requiredPermissions: ['page.analytics'], icon: <PipelineIcon /> },
+    { name: 'Логи', path: '/logs', page: 'logs', requiredPermissions: ['page.logs'], icon: <SessionIcon /> },
     {
       name: 'Права доступа',
       path: '/permissions',
@@ -77,7 +79,7 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
 
   const visibleItems = navigationItems.filter(hasAccess);
   const groups = [
-    { label: 'Работа', paths: ['/pipelines', '/sessions'] },
+    { label: 'Работа', paths: ['/pipelines', '/sessions', '/analytics', '/logs'] },
     { label: 'Администрирование', paths: ['/permissions', '/settings/ldap'] },
     { label: 'Информация', paths: ['/about'] },
   ];

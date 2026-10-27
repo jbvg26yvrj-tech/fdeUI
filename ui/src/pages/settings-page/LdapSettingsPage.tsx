@@ -1,3 +1,5 @@
+import { SettingsNavigation } from './SettingsNavigation';
+import '../../features/analytics/monitoring.css';
 import { useEffect, useState } from 'react';
 import {
   ldapApi,
@@ -146,7 +148,7 @@ export default function LdapSettingsPage() {
 
   return (
     <section className='fde-settings max-w-5xl mx-auto pb-8'>
-      <p className='text-sm text-slate-500 dark:text-slate-400 mb-2'>Настройки / LDAP</p>
+      <SettingsNavigation />
       <h1 className='fde-page-title'>Доменный вход и синхронизация</h1>
       <p className='mt-3 max-w-2xl text-slate-600 dark:text-slate-300'>
         Сотрудники входят с учётной записью организации. После первого входа администратор назначает

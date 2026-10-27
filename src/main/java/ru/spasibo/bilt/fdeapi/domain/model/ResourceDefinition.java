@@ -23,6 +23,9 @@ public enum ResourceDefinition {
     API_SESSIONS_LIST("api.sessions.list", "List sessions", ResourceType.API),
     API_SESSIONS_GET("api.sessions.get", "Get session", ResourceType.API),
 
+    API_ANALYTICS_READ("api.analytics.read", "Read pipeline analytics", ResourceType.API),
+    API_LOGS_READ("api.logs.read", "Read session logs", ResourceType.API),
+
     // ==================== Расписания ====================
     API_SCHEDULES_CREATE("api.schedules.create", "Create schedule", ResourceType.API),
     API_SCHEDULES_GET("api.schedules.get", "Get schedule", ResourceType.API),
@@ -51,6 +54,8 @@ public enum ResourceDefinition {
     // ==================== Страницы UI ====================
     PAGE_PIPELINES("page.pipelines", "Pipelines page", ResourceType.PAGE),
     PAGE_SESSIONS("page.sessions", "Sessions page", ResourceType.PAGE),
+    PAGE_ANALYTICS("page.analytics", "Analytics page", ResourceType.PAGE),
+    PAGE_LOGS("page.logs", "Logs page", ResourceType.PAGE),
     PAGE_USERS("page.users", "Users page", ResourceType.PAGE),
     PAGE_PERMISSIONS("page.permissions", "Permissions page", ResourceType.PAGE);
 
