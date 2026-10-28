@@ -18,6 +18,7 @@ interface SidebarProps {
 
 export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
   const navigationItems: NavigationItem[] = [
+    { name: 'Аудит', path: '/audit', adminOnly: true, icon: <LogsIcon /> },
     { name: 'О системе', path: '/about', icon: <PipelineIcon /> },
     {
       name: 'Настройки',
@@ -92,7 +93,7 @@ export const Sidebar = ({ collapsed = false, onNavigate }: SidebarProps) => {
   const visibleItems = navigationItems.filter(hasAccess);
   const groups = [
     { label: 'Работа', paths: ['/pipelines', '/sessions', '/analytics', '/logs'] },
-    { label: 'Администрирование', paths: ['/permissions', '/settings/ldap'] },
+    { label: 'Администрирование', paths: ['/permissions', '/audit', '/settings/ldap'] },
     { label: 'Информация', paths: ['/about'] },
   ];
 

@@ -22,7 +22,7 @@ export const Topbar = ({ onToggleSidebar, navigationExpanded, toggleRef }: Topba
   const { permissions = [], roles = [], isLoading } = useUserContext();
   const homePath = isLoading ? '/about' : landingPath(permissions, roles);
   const { pathname } = useLocation();
-  const section = pathname.startsWith('/analytics')
+  const section = pathname.startsWith('/audit') ? 'Аудит' : pathname.startsWith('/analytics')
     ? 'Аналитика'
     : pathname.startsWith('/logs')
       ? 'Логи'

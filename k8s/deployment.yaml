@@ -16,7 +16,7 @@ spec:
         app: fde-api
       annotations:
         prometheus.io/path: /actuator/prometheus
-        prometheus.io/port: '8080'
+        prometheus.io/port: '9090'
         prometheus.io/scrape: 'true'
     spec:
       terminationGracePeriodSeconds: 30
@@ -30,6 +30,9 @@ spec:
           image: sberworks.ru/spasibo_dev/ci90000782_bilt_dev/fde-api:2.0.0-20052026-1640
           ports:
             - containerPort: 8080
+              name: http
+            - containerPort: 9090
+              name: management
           env:
             - name: DB_HOST
               valueFrom:
@@ -97,13 +100,13 @@ spec:
               mountPath: /tmp
           startupProbe:
             httpGet:
-              path: /actuator/health/liveness
+              path: /livez
               port: 8080
             failureThreshold: 120
             periodSeconds: 5
           livenessProbe:
             httpGet:
-              path: /actuator/health/liveness
+              path: /livez
               port: 8080
             initialDelaySeconds: 90
             timeoutSeconds: 3
@@ -111,7 +114,7 @@ spec:
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /actuator/health/readiness
+              path: /readyz
               port: 8080
             initialDelaySeconds: 90
             timeoutSeconds: 3

@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: fde-api-ingress
+  namespace: fde
+spec:
+  podSelector:
+    matchLabels:
+      app: fde-api
+  policyTypes: [Ingress]
+  ingress:
+    # Keep existing application connectivity; production ingress policy can narrow this.
+    - ports:
+        - {protocol: TCP, port: 8080}
+        - {protocol: TCP, port: 8082}
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+          podSelector:
+            matchLabels:
+              app.kubernetes.io/name: prometheus
+      ports:
+        - {protocol: TCP, port: 9090}

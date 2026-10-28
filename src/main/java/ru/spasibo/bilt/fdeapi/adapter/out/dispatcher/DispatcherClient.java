@@ -52,11 +52,11 @@ public class DispatcherClient implements DispatcherPort {
             return handleResponseException(ex);
         } catch (WebClientRequestException ex) {
             apiMetrics.incrementProxyErrors();
-            log.error("Не удалось соединиться с dispatcher: {}", ex.getMessage());
+            log.error("Не удалось соединиться с dispatcher: {}", ex.getClass().getSimpleName());
             throw new DispatcherUnavailableException(DOWNSTREAM_UNAVAILABLE_MESSAGE);
         } catch (Exception ex) {
             apiMetrics.incrementProxyErrors();
-            log.error("Не удалось соединиться с dispatcher: {}", ex.getMessage());
+            log.error("Не удалось соединиться с dispatcher: {}", ex.getClass().getSimpleName());
             throw new DispatcherUnavailableException(DOWNSTREAM_UNAVAILABLE_MESSAGE);
         }
     }
@@ -84,11 +84,11 @@ public class DispatcherClient implements DispatcherPort {
             return handleResponseException(ex);
         } catch (WebClientRequestException ex) {
             apiMetrics.incrementProxyErrors();
-            log.error("Не удалось соединиться с dispatcher: {}", ex.getMessage());
+            log.error("Не удалось соединиться с dispatcher: {}", ex.getClass().getSimpleName());
             throw new DispatcherUnavailableException(DOWNSTREAM_UNAVAILABLE_MESSAGE);
         } catch (Exception ex) {
             apiMetrics.incrementProxyErrors();
-            log.error("Не удалось соединиться с dispatcher: {}", ex.getMessage());
+            log.error("Не удалось соединиться с dispatcher: {}", ex.getClass().getSimpleName());
             throw new DispatcherUnavailableException(DOWNSTREAM_UNAVAILABLE_MESSAGE);
         }
     }
@@ -116,11 +116,11 @@ public class DispatcherClient implements DispatcherPort {
             return handleResponseException(ex);
         } catch (WebClientRequestException ex) {
             apiMetrics.incrementProxyErrors();
-            log.error("Не удалось соединиться с dispatcher: {}", ex.getMessage());
+            log.error("Не удалось соединиться с dispatcher: {}", ex.getClass().getSimpleName());
             throw new DispatcherUnavailableException(DOWNSTREAM_UNAVAILABLE_MESSAGE);
         } catch (Exception ex) {
             apiMetrics.incrementProxyErrors();
-            log.error("Не удалось соединиться с dispatcher: {}", ex.getMessage());
+            log.error("Не удалось соединиться с dispatcher: {}", ex.getClass().getSimpleName());
             throw new DispatcherUnavailableException(DOWNSTREAM_UNAVAILABLE_MESSAGE);
         }
     }
@@ -146,11 +146,11 @@ public class DispatcherClient implements DispatcherPort {
             return handleResponseException(ex);
         } catch (WebClientRequestException ex) {
             apiMetrics.incrementProxyErrors();
-            log.error("Не удалось соединиться с dispatcher: {}", ex.getMessage());
+            log.error("Не удалось соединиться с dispatcher: {}", ex.getClass().getSimpleName());
             throw new DispatcherUnavailableException(DOWNSTREAM_UNAVAILABLE_MESSAGE);
         } catch (Exception ex) {
             apiMetrics.incrementProxyErrors();
-            log.error("Не удалось соединиться с dispatcher: {}", ex.getMessage());
+            log.error("Не удалось соединиться с dispatcher: {}", ex.getClass().getSimpleName());
             throw new DispatcherUnavailableException(DOWNSTREAM_UNAVAILABLE_MESSAGE);
         }
     }
@@ -181,8 +181,7 @@ public class DispatcherClient implements DispatcherPort {
     private ResponseEntity<String> handleResponseException(WebClientResponseException ex) {
         HttpStatusCode status = ex.getStatusCode();
         String body = ex.getResponseBodyAsString();
-        log.warn("Dispatcher вернул ошибку: {} {}", status, ex.getStatusText());
-        log.debug("Тело ошибки dispatcher: {}", body);
+        log.warn("Dispatcher вернул ошибку: {} {}", status, ex.getClass().getSimpleName());
 
         return ResponseEntity.status(status)
                 .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
@@ -193,7 +192,7 @@ public class DispatcherClient implements DispatcherPort {
      * Fallback для методов с сигнатурой только из пути (GET, DELETE).
      */
     private ResponseEntity<String> fallbackGet(String path, Exception e) {
-        log.error("Circuit breaker dispatcher разомкнут или исчерпаны повторы: {}", e.getMessage());
+        log.error("Circuit breaker dispatcher разомкнут или исчерпаны повторы: {}", e.getClass().getSimpleName());
         throw new DispatcherUnavailableException(DOWNSTREAM_UNAVAILABLE_MESSAGE);
     }
 
@@ -201,7 +200,7 @@ public class DispatcherClient implements DispatcherPort {
      * Fallback для методов с сигнатурой из пути и тела (POST, PUT).
      */
     private ResponseEntity<String> fallbackWithBody(String path, String body, Exception e) {
-        log.error("Circuit breaker dispatcher разомкнут или исчерпаны повторы: {}", e.getMessage());
+        log.error("Circuit breaker dispatcher разомкнут или исчерпаны повторы: {}", e.getClass().getSimpleName());
         throw new DispatcherUnavailableException(DOWNSTREAM_UNAVAILABLE_MESSAGE);
     }
 }

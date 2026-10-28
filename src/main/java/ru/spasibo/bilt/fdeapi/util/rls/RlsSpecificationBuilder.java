@@ -62,7 +62,7 @@ public class RlsSpecificationBuilder {
                 query.distinct(true);
                 return buildPredicateWithJoins(filter, root, query, cb, entityClass);
             } catch (Exception e) {
-                log.error("Ошибка построения спецификации: {}", e.getMessage(), e);
+                log.error("Ошибка построения спецификации: {}", e.getClass().getSimpleName());
                 return cb.disjunction();
             }
         };
@@ -261,7 +261,7 @@ public class RlsSpecificationBuilder {
             return createPredicate(fieldPath, operator, value, cb);
 
         } catch (Exception e) {
-            log.error("Ошибка создания предиката для условия {}: {}", condition, e.getMessage(), e);
+            log.error("Ошибка создания предиката для условия {}: {}", condition, e.getClass().getSimpleName());
             throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS restriction");
         }
     }
@@ -289,7 +289,7 @@ public class RlsSpecificationBuilder {
                 return root.get(fieldPath);
             }
         } catch (Exception e) {
-            log.error("Ошибка разрешения пути поля {}: {}", fieldPath, e.getMessage());
+            log.error("Ошибка разрешения пути поля {}: {}", fieldPath, e.getClass().getSimpleName());
             throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS restriction");
         }
     }
@@ -419,7 +419,7 @@ public class RlsSpecificationBuilder {
                 return values;
             }
         } catch (Exception e) {
-            log.error("Ошибка парсинга значения {} к типу {}: {}", valueNode, fieldType, e.getMessage());
+            log.error("Ошибка парсинга значения {} к типу {}: {}", valueNode, fieldType, e.getClass().getSimpleName());
         }
 
         throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS restriction");
@@ -447,7 +447,7 @@ public class RlsSpecificationBuilder {
                 return LocalDateTime.parse(value, formatter);
             }
         } catch (Exception e) {
-            log.error("Ошибка преобразования значения {} к типу {}: {}", value, fieldType, e.getMessage());
+            log.error("Ошибка преобразования значения {} к типу {}: {}", value, fieldType, e.getClass().getSimpleName());
             throw new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("Invalid RLS value");
         }
         log.warn("Не удалось конвертировать значение '{}' в тип {}, возвращаем как строку", value, fieldType);
@@ -471,7 +471,7 @@ public class RlsSpecificationBuilder {
                 return num.shortValue();
             }
         } catch (Exception e) {
-            log.error("Ошибка преобразования числа {} к типу {}: {}", num, fieldType, e.getMessage());
+            log.error("Ошибка преобразования числа {} к типу {}: {}", num, fieldType, e.getClass().getSimpleName());
         }
         return num;
     }

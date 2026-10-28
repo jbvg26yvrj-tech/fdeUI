@@ -1,0 +1,14 @@
+# Replace target and exporter address for your cluster.
+- job_name: fde-login
+  metrics_path: /probe
+  params:
+    module: [fde_login]
+  static_configs:
+    - targets: ['https://fde.example.org/login']
+  relabel_configs:
+    - source_labels: [__address__]
+      target_label: __param_target
+    - source_labels: [__param_target]
+      target_label: instance
+    - target_label: __address__
+      replacement: blackbox-exporter.monitoring.svc:9115

@@ -38,10 +38,10 @@ public class DispatcherHealthIndicator implements HealthIndicator {
                     .withDetail("dispatcher", "available")
                     .build();
         } catch (Exception e) {
-            log.warn("Проверка доступности dispatcher не пройдена: {}", e.getMessage());
+            log.warn("Проверка доступности dispatcher не пройдена: {}", e.getClass().getSimpleName());
             return Health.down()
                     .withDetail("dispatcher", "unavailable")
-                    .withDetail("error", e.getMessage() != null ? e.getMessage() : "unknown")
+                    .withDetail("error", e.getClass().getSimpleName())
                     .build();
         }
     }

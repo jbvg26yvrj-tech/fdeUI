@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import org.springframework.scheduling.annotation.Scheduled;
 import ru.spasibo.bilt.fdeapi.adapter.out.persistence.pipelines.PipelineRepository;
 
 /**
@@ -15,6 +16,9 @@ import ru.spasibo.bilt.fdeapi.adapter.out.persistence.pipelines.PipelineReposito
 @Slf4j
 public class ApiMetrics {
 
+    private final PipelineRepository pipelineRepository;
+    private volatile double cachedPipelineCount = Double.NaN;
+    private volatile double countCheckedAt;
     private final Counter pipelineCreatedCounter;
     private final Counter pipelineDeletedCounter;
     private final Counter proxyRequestsCounter;
@@ -24,6 +28,8 @@ public class ApiMetrics {
     private final Gauge pipelinesTotal;
 
     public ApiMetrics(MeterRegistry registry, PipelineRepository pipelineRepository) {
+        this.pipelineRepository = pipelineRepository;
+        Gauge.builder("fde_api_pipelines_count_checked_timestamp_seconds", this, m -> m.countCheckedAt).register(registry);
         this.pipelineCreatedCounter = Counter.builder("fde_api_pipelines_created_total")
                 .description("Total pipelines created")
                 .register(registry);
@@ -42,11 +48,22 @@ public class ApiMetrics {
                 .tag("target", "dispatcher")
                 .register(registry);
 
-        this.pipelinesTotal = Gauge.builder("fde_api_pipelines_total", pipelineRepository, repo -> repo.count())
+        this.pipelinesTotal = Gauge.builder("fde_api_pipelines_total", this, m -> m.cachedPipelineCount)
                 .description("Current number of pipelines")
                 .register(registry);
 
         log.debug("Метрики FDE API зарегистрированы");
+    }
+
+    @Scheduled(fixedDelayString = "${fde.monitoring.count-delay-ms:60000}", initialDelay = 15000)
+    public void refreshPipelineCount() {
+        try {
+            cachedPipelineCount = pipelineRepository.count();
+            countCheckedAt = System.currentTimeMillis() / 1000.0;
+        } catch (RuntimeException ex) {
+            cachedPipelineCount = Double.NaN;
+            log.warn("Pipeline count refresh failed: {}", ex.getClass().getSimpleName());
+        }
     }
 
     public void incrementPipelineCreated() {

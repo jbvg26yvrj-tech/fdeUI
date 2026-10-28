@@ -1,0 +1,54 @@
+groups:
+  - name: fde-api
+    rules:
+      - alert: FdeApiUnavailable
+        expr: sum(up{job="fde-api"}) == 0 or absent(up{job="fde-api"})
+        for: 2m
+        labels: {severity: critical}
+        annotations:
+          summary: "FDE: нет доступных экземпляров API"
+          description: "Проверьте pod, Service, NetworkPolicy и доступ Prometheus."
+      - alert: FdeApiReplicaUnavailable
+        expr: up{job="fde-api"} == 0
+        for: 5m
+        labels: {severity: warning}
+        annotations: {summary: "FDE: недоступна реплика API"}
+      - alert: FdeApiHighErrorRate
+        expr: sum(rate(http_server_requests_seconds_count{job="fde-api",status=~"5..",uri=~"/api/.*"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{job="fde-api",uri=~"/api/.*"}[5m])), 0.001) > 0.05
+        for: 5m
+        labels: {severity: critical}
+        annotations: {summary: "FDE: более 5% запросов API завершаются ошибкой сервера"}
+      - alert: FdeApiSlow
+        expr: histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{job="fde-api",uri=~"/api/.*"}[5m]))) > 2
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "FDE: p95 времени ответа API выше 2 секунд"}
+      - alert: FdeDispatcherUnavailable
+        expr: fde_dependency_up{job="fde-api",dependency="dispatcher"} == 0
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: "FDE: API не может подключиться к dispatcher"}
+      - alert: FdeDependencyProbeStale
+        expr: time() - fde_dependency_checked_timestamp_seconds{job="fde-api"} > 120
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: "FDE: проверка зависимости перестала обновляться"}
+      - alert: FdeAuditWriteFailure
+        expr: sum(increase(fde_audit_write_failures_total{job="fde-api"}[5m])) > 0
+        labels: {severity: critical}
+        annotations: {summary: "FDE: событие аудита не удалось сохранить"}
+      - alert: FdeDatabasePoolWait
+        expr: hikaricp_connections_pending{job="fde-api"} > 0
+        for: 2m
+        labels: {severity: warning}
+        annotations: {summary: "FDE: запросы ожидают свободного подключения к БД"}
+      - alert: FdeJvmHeapPressure
+        expr: sum by (instance) (jvm_memory_used_bytes{job="fde-api",area="heap"}) / sum by (instance) (jvm_memory_max_bytes{job="fde-api",area="heap"}) > 0.85
+        for: 10m
+        labels: {severity: warning}
+        annotations: {summary: "FDE: занято более 85% Java heap"}
+      - alert: FdeLoginPageUnavailable
+        expr: probe_success{job="fde-login"} == 0 or absent(probe_success{job="fde-login"})
+        for: 2m
+        labels: {severity: critical}
+        annotations: {summary: "FDE: внешняя проверка страницы входа не проходит"}

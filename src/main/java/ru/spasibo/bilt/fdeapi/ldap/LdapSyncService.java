@@ -14,6 +14,8 @@ import java.util.concurrent.*;
 
 @Service
 public class LdapSyncService {
+    @org.springframework.beans.factory.annotation.Autowired(required=false)
+    private ru.spasibo.bilt.fdeapi.audit.AuditService audit;
     private final LdapSettingsService settings;
     private final LdapSettingsRepository repository;
     private final UserRepository users;
@@ -43,7 +45,10 @@ public class LdapSyncService {
     public SyncResult runNow() { return run(false); }
     @Scheduled(fixedDelay = 60000, initialDelay = 60000)
     public void scheduled() {
-        try { if (settings.get().isSyncEnabled()) run(true); }
+        try { if (settings.get().isSyncEnabled()) {
+            SyncResult outcome = run(true);
+            if (audit != null && !"RUNNING".equals(outcome.status())) audit.record("ldap.sync.scheduled", "ldap", null, "SUCCESS".equals(outcome.status()) ? "SUCCESS" : "FAILURE");
+        } }
         catch (RuntimeException ignored) { /* Database/infra outages are retried; never log directory secrets. */ }
     }
     private SyncResult run(boolean scheduled) {
@@ -78,6 +83,7 @@ public class LdapSyncService {
             });
             Map<UUID, Optional<DirectoryIdentity>> staged = pending.get(20, TimeUnit.SECONDS);
             return transaction.execute(tx -> {
+                if (audit != null) audit.context();
                 LdapSettingsEntity row = repository.lock().orElseThrow();
                 if (!owner.equals(row.getLeaseOwner()) || row.getLeaseUntil() == null || row.getLeaseUntil().isBefore(Instant.now())
                         || !Objects.equals(snapshot.getConfigJson(), row.getConfigJson())
@@ -101,6 +107,7 @@ public class LdapSyncService {
             if (pending != null) pending.cancel(true);
             if (ex instanceof InterruptedException) Thread.currentThread().interrupt();
             return transaction.execute(tx -> {
+                if (audit != null) audit.context();
                 LdapSettingsEntity row = repository.lock().orElseThrow();
                 if (owner.equals(row.getLeaseOwner())) {
                     row.setSyncStatus("FAILED");

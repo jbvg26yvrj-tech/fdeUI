@@ -122,7 +122,7 @@ public class TokenServiceImpl implements TokenPort {
 
             return extractPrincipal(claims);
         } catch (Exception e) {
-            log.error("Не удалось разобрать пользователя из токена: {}", e.getMessage());
+            log.error("Не удалось разобрать пользователя из токена: {}", e.getClass().getSimpleName());
             return null;
         }
     }
@@ -138,7 +138,7 @@ public class TokenServiceImpl implements TokenPort {
 
             return extractPrincipal(claims);
         } catch (Exception e) {
-            log.error("Не удалось извлечь пользователя из access-токена: {}", e.getMessage());
+            log.error("Не удалось извлечь пользователя из access-токена: {}", e.getClass().getSimpleName());
             return null;
         }
     }
@@ -230,7 +230,7 @@ public class TokenServiceImpl implements TokenPort {
                     .parseSignedClaims(token);
             return true;
         } catch (Exception e) {
-            log.debug("Проверка токена не пройдена: {}", e.getMessage());
+            log.debug("Проверка токена не пройдена: {}", e.getClass().getSimpleName());
             return false;
         }
     }

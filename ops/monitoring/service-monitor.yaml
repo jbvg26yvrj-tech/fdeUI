@@ -1,0 +1,22 @@
+# Requires Prometheus Operator. Match your Prometheus serviceMonitorSelector labels.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: fde-api
+  namespace: fde
+  labels:
+    app: fde-api
+spec:
+  selector:
+    matchLabels:
+      app: fde-api-management
+  namespaceSelector:
+    matchNames: [fde]
+  endpoints:
+    - port: management
+      path: /actuator/prometheus
+      interval: 30s
+      scrapeTimeout: 10s
+      relabelings:
+        - targetLabel: job
+          replacement: fde-api

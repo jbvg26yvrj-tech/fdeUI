@@ -1,0 +1,23 @@
+# Merge into scrape_configs of an existing Prometheus. Do not combine with ServiceMonitor.
+- job_name: fde-api
+  scrape_interval: 30s
+  scrape_timeout: 10s
+  metrics_path: /actuator/prometheus
+  kubernetes_sd_configs:
+    - role: pod
+      namespaces:
+        names: [fde]
+  relabel_configs:
+    - source_labels: [__meta_kubernetes_pod_label_app]
+      regex: fde-api
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_container_port_name]
+      regex: management
+      action: keep
+    - source_labels: [__meta_kubernetes_pod_phase]
+      regex: Running
+      action: keep
+    - source_labels: [__meta_kubernetes_namespace]
+      target_label: namespace
+    - source_labels: [__meta_kubernetes_pod_name]
+      target_label: pod

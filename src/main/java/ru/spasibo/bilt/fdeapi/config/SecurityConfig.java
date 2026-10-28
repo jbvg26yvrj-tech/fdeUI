@@ -38,6 +38,14 @@ public class SecurityConfig {
     private final CorsProperties corsProperties;
     private final ObjectMapper objectMapper;
 
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private ru.spasibo.bilt.fdeapi.audit.AuditService auditService;
+
+    private void auditDenied(jakarta.servlet.http.HttpServletRequest request, String result) {
+        if (auditService != null && (java.util.Set.of("POST", "PUT", "PATCH", "DELETE").contains(request.getMethod()) || request.getRequestURI().startsWith("/api/v1/audit")))
+            auditService.record("security.access", "security", null, result);
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -61,7 +69,8 @@ public class SecurityConfig {
                             "/api/v1/auth/validate"
                     ).authenticated();
                     authz.requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll();
-                    authz.requestMatchers("/actuator/**").permitAll();
+                    authz.requestMatchers("/actuator", "/actuator/**").denyAll();
+                    authz.requestMatchers(HttpMethod.GET, "/livez", "/readyz").permitAll();
                     authz.requestMatchers("/api/**").authenticated();
                     authz.anyRequest().permitAll();
                 })
@@ -69,6 +78,7 @@ public class SecurityConfig {
                         .authenticationEntryPoint((request, response, authException) -> {
                             // проверяем конкретную ошибку аутентификации,
                             // выставленную JwtAuthenticationFilter
+                            auditDenied(request, "FAILURE");
                             String authError = (String) request.getAttribute(
                                     JwtAuthenticationFilter.AUTH_ERROR_ATTRIBUTE);
 
@@ -84,9 +94,10 @@ public class SecurityConfig {
                             writeErrorResponse(response, HttpServletResponse.SC_UNAUTHORIZED,
                                     "Unauthorized", message);
                         })
-                        .accessDeniedHandler((request, response, accessDeniedException) ->
-                                writeErrorResponse(response, HttpServletResponse.SC_FORBIDDEN,
-                                        "Forbidden", "Access denied"))
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            auditDenied(request, "FORBIDDEN");
+                            writeErrorResponse(response, HttpServletResponse.SC_FORBIDDEN, "Forbidden", "Access denied");
+                        })
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 

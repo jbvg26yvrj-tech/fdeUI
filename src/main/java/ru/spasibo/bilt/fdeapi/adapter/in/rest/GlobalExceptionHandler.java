@@ -43,7 +43,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(TokenExpiredException.class)
     public ResponseEntity<ErrorResponse> handleTokenExpired(TokenExpiredException ex) {
-        log.warn("Токен истёк: {}", ex.getMessage());
+        log.warn("Токен истёк: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
@@ -54,7 +54,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<ErrorResponse> handleAuthentication(AuthenticationException ex) {
-        log.warn("Аутентификация не пройдена: {}", ex.getMessage());
+        log.warn("Аутентификация не пройдена: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
@@ -64,86 +64,86 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AccountNotActivatedException.class)
     public ResponseEntity<ErrorResponse> handleAccountNotActivated(AccountNotActivatedException ex) {
-        log.warn("Аккаунт не активирован: {}", ex.getMessage());
+        log.warn("Аккаунт не активирован: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleDomainAccessDenied(AccessDeniedException ex) {
-        log.warn("Доступ запрещён: {}", ex.getMessage());
+        log.warn("Доступ запрещён: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage());
     }
 
     @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
     public ResponseEntity<ErrorResponse> handleAccessDenied(
             org.springframework.security.access.AccessDeniedException ex) {
-        log.warn("Доступ запрещён: {}", ex.getMessage());
+        log.warn("Доступ запрещён: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.FORBIDDEN, "Access denied");
     }
 
     @ExceptionHandler(PipelineNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(PipelineNotFoundException ex) {
-        log.warn("Пайплайн не найден: {}", ex.getMessage());
+        log.warn("Пайплайн не найден: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(SessionNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleSessionNotFound(SessionNotFoundException ex) {
-        log.warn("Сессия не найдена: {}", ex.getMessage());
+        log.warn("Сессия не найдена: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(PipelineAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleAlreadyExists(PipelineAlreadyExistsException ex) {
-        log.warn("Пайплайн уже существует: {}", ex.getMessage());
+        log.warn("Пайплайн уже существует: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(UserAlreadyExistsException.class)
     public ResponseEntity<ErrorResponse> handleUserAlreadyExists(UserAlreadyExistsException ex) {
-        log.warn("Пользователь уже существует: {}", ex.getMessage());
+        log.warn("Пользователь уже существует: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage());
     }
 
     @ExceptionHandler(UserNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUserNotFound(UserNotFoundException ex) {
-        log.warn("Пользователь не найден: {}", ex.getMessage());
+        log.warn("Пользователь не найден: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(RoleNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleRoleNotFound(RoleNotFoundException ex) {
-        log.warn("Роль не найдена: {}", ex.getMessage());
+        log.warn("Роль не найдена: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFound(ResourceNotFoundException ex) {
-        log.warn("Ресурс не найден: {}", ex.getMessage());
+        log.warn("Ресурс не найден: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ErrorResponse> handleValidation(ValidationException ex) {
-        log.warn("Ошибка валидации: {}", ex.getMessage());
+        log.warn("Ошибка валидации: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(DispatcherUnavailableException.class)
     public ResponseEntity<ErrorResponse> handleDispatcherUnavailable(DispatcherUnavailableException ex) {
-        log.error("Dispatcher недоступен: {}", ex.getMessage());
+        log.error("Dispatcher недоступен: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.BAD_GATEWAY, ex.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex) {
-        log.warn("Некорректный аргумент: {}", ex.getMessage());
+        log.warn("Некорректный аргумент: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(PipelineValidationException.class)
     public ResponseEntity<ErrorResponse> handleValidation(PipelineValidationException ex) {
-        log.warn("Ошибка валидации: {}", ex.getMessage());
+        log.warn("Ошибка валидации: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
@@ -152,14 +152,14 @@ public class GlobalExceptionHandler {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> fe.getField() + ": " + fe.getDefaultMessage())
                 .collect(Collectors.joining("; "));
-        log.warn("Ошибка валидации полей: {}", message);
+        log.warn("Ошибка валидации полей: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.BAD_REQUEST, message);
     }
 
     @ExceptionHandler(MissingServletRequestParameterException.class)
     public ResponseEntity<ErrorResponse> handleMissingParam(MissingServletRequestParameterException ex) {
         String message = "Missing required parameter: '" + ex.getParameterName() + "'";
-        log.warn("Отсутствует параметр: {}", message);
+        log.warn("Отсутствует параметр: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.BAD_REQUEST, message);
     }
 
@@ -168,20 +168,20 @@ public class GlobalExceptionHandler {
         String message = ex.getConstraintViolations().stream()
                 .map(v -> v.getPropertyPath() + ": " + v.getMessage())
                 .collect(Collectors.joining("; "));
-        log.warn("Нарушение ограничения: {}", message);
+        log.warn("Нарушение ограничения: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.BAD_REQUEST, message);
     }
 
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ErrorResponse> handleNotReadable(HttpMessageNotReadableException ex) {
-        log.warn("Некорректное тело запроса: {}", ex.getMessage());
+        log.warn("Некорректное тело запроса: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.BAD_REQUEST, "Malformed request body");
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
         String message = "Invalid value for parameter '" + ex.getName() + "': " + ex.getValue();
-        log.warn("Несоответствие типа: {}", message);
+        log.warn("Несоответствие типа: {}", ex.getClass().getSimpleName());
         return buildResponse(HttpStatus.BAD_REQUEST, message);
     }
 
@@ -203,7 +203,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex) {
-        log.error("Необработанное исключение", ex);
+        log.error("Необработанное исключение: type={} stack={}", ex.getClass().getName(),
+                java.util.Arrays.toString(ex.getStackTrace()));
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
     }
 

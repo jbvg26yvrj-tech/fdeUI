@@ -10,7 +10,7 @@ const pagePermissions: Record<string, string> = {
 export function canAccessPath(path: string, permissions: string[], roles: string[]): boolean {
   const section = path.split('/')[1];
   if (section === 'about') return true;
-  if (['settings', 'logs', 'permissions', 'change-datacenter'].includes(section)) return roles.includes('ADMIN');
+  if (['settings', 'logs', 'permissions', 'change-datacenter', 'audit'].includes(section)) return roles.includes('ADMIN');
   const required = pagePermissions[section];
   return Boolean(required && (roles.includes('ADMIN') || permissions.includes(required)));
 }

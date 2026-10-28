@@ -1,0 +1,12 @@
+# Module for an existing blackbox_exporter; keep TLS verification enabled.
+modules:
+  fde_login:
+    prober: http
+    timeout: 10s
+    http:
+      method: GET
+      preferred_ip_protocol: ip4
+      valid_status_codes: [200]
+      fail_if_not_ssl: true
+      fail_if_body_not_matches_regexp:
+        - '<div id="root"'

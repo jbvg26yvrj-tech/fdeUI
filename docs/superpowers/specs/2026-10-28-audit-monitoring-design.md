@@ -1,0 +1,8 @@
+# Audit and Kubernetes monitoring
+User approved design on 2026-10-28 and explicitly requires Kubernetes support.
+
+Persist append-only user/admin/system action audit in PostgreSQL; UTC timestamps, actor, action, target, result, correlation ID, safe before/after changes. Cover authentication outcomes, forbidden mutations, pipelines, schedules and execution requests, permissions/users/roles/RLS, LDAP synchronization, Loki/LDAP settings and system information. Never persist credentials, tokens, secrets or arbitrary request/response bodies. External command acceptance must not claim execution completed. Admin-only paginated audit UI, filters and readable details; no audit mutation API.
+
+Retain JSON stdout logs, bounded validated correlation IDs, safe request completion records. Prometheus metrics for HTTP latency/errors, JVM/pool, authentication/audit failures and dependencies with bounded labels. Management endpoint isolated from public traffic; Kubernetes probes must remain functional. Persist audit independently of pod lifecycle and support multiple replicas. Provide scrape/alerts/Grafana configuration and external login-page blackbox check. Do not install an unrequested monitoring stack or claim real delivery readiness on executor-stub.
+
+No automatic audit deletion in this iteration; document capacity/archiving. Audit local committed mutations atomically where possible; capture failed attempts separately and expose audit write failures. External operations have explicit request/result records and uncertain outcomes. No raw exception text or untrusted headers as secrets-bearing persisted fields. Keep existing role scoping unchanged.
