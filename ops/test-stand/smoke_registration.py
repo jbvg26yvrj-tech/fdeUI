@@ -16,7 +16,8 @@ def main():
         assert user['activated'] and not user['passwordChangeRequired']
         viewer=Client(base);viewer.login(creds)
         context=viewer.call('GET','/user-context')
-        assert not context['roleCodes'] and not context['resourceCodes']
+        assert not context['roleCodes']
+        assert set(context['resourceCodes']) == {'api.user-settings.manage','api.user-context.get'}
         viewer.call('GET','/information')
         for path in ['/pipelines','/sessions','/analytics/config','/settings/access','/settings/ldap','/settings/loki','/audit']:
             viewer.call('GET',path,expected=(403,))
