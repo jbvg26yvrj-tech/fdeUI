@@ -30,7 +30,7 @@ public class ApiMetrics {
     public ApiMetrics(MeterRegistry registry, PipelineRepository pipelineRepository) {
         this.pipelineRepository = pipelineRepository;
         Gauge.builder("fde_api_pipelines_count_checked_timestamp_seconds", this, m -> m.countCheckedAt).register(registry);
-        this.pipelineCreatedCounter = Counter.builder("fde_api_pipelines_created_total")
+        this.pipelineCreatedCounter = Counter.builder("fde_api_pipeline_create_operations_total")
                 .description("Total pipelines created")
                 .register(registry);
 
@@ -48,7 +48,7 @@ public class ApiMetrics {
                 .tag("target", "dispatcher")
                 .register(registry);
 
-        this.pipelinesTotal = Gauge.builder("fde_api_pipelines_total", this, m -> m.cachedPipelineCount)
+        this.pipelinesTotal = Gauge.builder("fde_api_pipelines_current", this, m -> m.cachedPipelineCount)
                 .description("Current number of pipelines")
                 .register(registry);
 

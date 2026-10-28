@@ -30,7 +30,7 @@ class LokiTransportTest {
     }
     @Test void invalidTlsDoesNotLogUpstreamBytes() throws Exception {
         var logger=(ch.qos.logback.classic.Logger)org.slf4j.LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME);
-        var logs=new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>(); logs.start(); logger.addAppender(logs);
+        var logs=new ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent>(); logs.list = new java.util.concurrent.CopyOnWriteArrayList<>(); logs.start(); logger.addAppender(logs);
         try(var server=new java.net.ServerSocket(0,1,InetAddress.getByName("127.0.0.1"))) {
             var reply=java.util.concurrent.CompletableFuture.runAsync(()->{
                 try(var socket=server.accept()) {

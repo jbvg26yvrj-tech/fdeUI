@@ -24,7 +24,7 @@ def main():
         viewer.call('POST','/roles',{'code':'QA_AUDIT_DENIED','name':'Denied','clientCodes':['DWH']},expected=(403,))
         anon.call('POST','/auth/login',dict(credentials,password='incorrect_'+canary),expected=(401,403))
         payload={'pipelineName':'QA audit '+stamp,'clientFrom':'DWH','clientTo':'PC','primaryDatacenter':'SP','allOrNothing':False,
-            'tasks':[{'taskOrder':1,'typeCode':'SftpDownloadTask','props':{'sourceDir':'/SIMULATION-NO-FILES','password':canary}}]}
+            'tasks':[{'taskOrder':1,'typeCode':'SftpDownloadTask','props':{'sourceDir':'/SIMULATION-NO-FILES/'+canary}}]}
         pipeline=admin.call('POST','/pipelines',payload)
         payload['primaryDatacenter']='SC'
         admin.call('PUT','/pipelines/'+pipeline['id'],payload)
