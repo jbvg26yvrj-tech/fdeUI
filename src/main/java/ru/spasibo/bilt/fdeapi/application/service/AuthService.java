@@ -40,11 +40,12 @@ public class AuthService {
     private final AuthUserPort authUserPort;
     private final TokenPort tokenPort;
     private final PasswordEncoder passwordEncoder;
+    private final RegistrationSettingsService registrationSettings;
 
     /**
      * Регистрирует нового пользователя с указанными учётными данными.
-     * Пользователь создаётся неактивным с passwordChangeRequired=true.
-     * НЕ генерирует токены для неактивированных пользователей.
+     * Пользователь создаётся активным без ролей и без обязательной смены своего пароля.
+     * Токены выдаются при последующем входе.
      *
      * @param login           желаемый логин
      * @param password        пароль
@@ -53,6 +54,7 @@ public class AuthService {
      */
     @Transactional
     public UserPrincipal register(String login, String password, String confirmPassword) {
+        registrationSettings.requireEnabled();
         if (!password.equals(confirmPassword)) {
             throw new ValidationException("Password and confirmation do not match");
         }

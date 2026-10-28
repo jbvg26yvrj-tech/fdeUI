@@ -17,6 +17,7 @@ import { ThemeProvider } from '../context/ThemeContext';
 import { Layout } from '../shared/ui/layout/Layout';
 import { useAuthInitialization } from '../shared/hooks/useAuthInitialization';
 import { AccessRoute } from '../shared/components/AccessRoute';
+const AccessSettingsPage = lazy(() => import('../pages/settings-page/AccessSettingsPage'));
 const AuditPage = lazy(() => import('../pages/audit-page/AuditPage'));
 const AboutPage = lazy(() => import('../pages/about-page'));
 const AnalyticsPage = lazy(() => import('../pages/analytics-page/AnalyticsPage'));
@@ -225,6 +226,7 @@ function AppContent() {
         <Route path='/analytics/pipelines/:id' element={<ProtectedRoute><Suspense fallback={<PageLoader />}><AnalyticsPage /></Suspense></ProtectedRoute>} />
         <Route path='/audit' element={<ProtectedRoute><Suspense fallback={<PageLoader />}><AuditPage /></Suspense></ProtectedRoute>} />
         <Route path='/logs' element={<ProtectedRoute><Suspense fallback={<PageLoader />}><LogsPage /></Suspense></ProtectedRoute>} />
+        <Route path='/settings/access' element={<ProtectedRoute><Suspense fallback={<PageLoader />}><AccessSettingsPage /></Suspense></ProtectedRoute>} />
         <Route path='/settings/loki' element={<ProtectedRoute><Suspense fallback={<PageLoader />}><LokiSettingsPage /></Suspense></ProtectedRoute>} />
         <Route path='/settings/information' element={<ProtectedRoute><Suspense fallback={<PageLoader />}><InformationSettingsPage /></Suspense></ProtectedRoute>} />
         <Route path='/' element={<LandingRoute />} />

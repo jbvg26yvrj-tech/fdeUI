@@ -59,20 +59,21 @@ public class AuthController {
     private final TokenPort tokenPort;
     private final ru.spasibo.bilt.fdeapi.ldap.LdapLoginService ldapLoginService;
     private final ru.spasibo.bilt.fdeapi.ldap.LdapSettingsService ldapSettingsService;
+    private final ru.spasibo.bilt.fdeapi.application.service.RegistrationSettingsService registrationSettings;
 
     @GetMapping("/providers")
-    public Map<String, Boolean> providers() { return Map.of("ldapEnabled", ldapSettingsService.enabled()); }
+    public Map<String, Boolean> providers() { return Map.of("ldapEnabled", ldapSettingsService.enabled(), "registrationEnabled", registrationSettings.enabled()); }
 
     /**
      * Регистрирует нового пользователя.
-     * Возвращает только данные пользователя (201 Created), без токенов для неактивированных пользователей.
+     * Возвращает только данные пользователя (201 Created), без токенов; пользователь может сразу выполнить вход.
      *
      * @param request данные для регистрации
      * @return данные пользователя (201 Created)
      */
     @PostMapping("/registration")
     @Operation(summary = "Регистрация пользователя",
-            description = "Создаёт нового пользователя. Токены не выдаются до активации учётной записи.")
+            description = "Создаёт активного пользователя без ролей, если самостоятельная регистрация включена. Для получения токенов выполните вход.")
     @ApiResponses({
             @ApiResponse(responseCode = "201", description = "Пользователь успешно зарегистрирован"),
             @ApiResponse(responseCode = "400", description = "Некорректные данные регистрации или пользователь уже существует")

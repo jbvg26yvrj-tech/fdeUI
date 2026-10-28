@@ -43,6 +43,9 @@ class AuthServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private RegistrationSettingsService registrationSettings;
+
     @InjectMocks
     private AuthService authService;
 
@@ -170,11 +173,19 @@ class AuthServiceTest {
     @Nested
     @DisplayName("register()")
     class RegisterTests {
+        @Test void disabledRegistrationDoesNotCreateOrIssueTokens() {
+            org.mockito.Mockito.doThrow(new ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException("closed"))
+                .when(registrationSettings).requireEnabled();
+            assertThatThrownBy(() -> authService.register(LOGIN,PASSWORD,PASSWORD))
+                .isInstanceOf(ru.spasibo.bilt.fdeapi.domain.exception.AccessDeniedException.class);
+            org.mockito.Mockito.verifyNoInteractions(authUserPort,tokenPort,passwordEncoder);
+        }
+
 
         @Test
         @DisplayName("Should register user with valid data")
         void register_validData_returnsUserPrincipal() {
-            AuthUserData savedUser = createUser(false, true);
+            AuthUserData savedUser = createUser(true, false);
             when(authUserPort.existsByLogin(LOGIN)).thenReturn(false);
             when(passwordEncoder.encode(PASSWORD)).thenReturn(HASHED_PASSWORD);
             when(authUserPort.save(LOGIN, HASHED_PASSWORD)).thenReturn(savedUser);
@@ -184,6 +195,8 @@ class AuthServiceTest {
             assertThat(result).isNotNull();
             assertThat(result.login()).isEqualTo(LOGIN);
             assertThat(result.id()).isEqualTo(USER_ID);
+            verify(registrationSettings).requireEnabled();
+            verify(tokenPort,never()).generateTokenPair(any());
         }
 
         @Test

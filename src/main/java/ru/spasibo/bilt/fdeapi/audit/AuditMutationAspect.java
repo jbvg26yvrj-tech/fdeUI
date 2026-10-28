@@ -16,7 +16,7 @@ public class AuditMutationAspect {
     private final AuditService audit;
     private final TransactionTemplate transaction;
     private static final Set<String> TYPES=Set.of("UserService","RoleService","RlsService","PipelineService",
-        "AuthService","LdapIdentityService","LdapSettingsService","LokiSettingsService","InformationService");
+        "AuthService","RegistrationSettingsService","LdapIdentityService","LdapSettingsService","LokiSettingsService","InformationService");
     public AuditMutationAspect(AuditService audit, PlatformTransactionManager manager) {
         this.audit=audit; this.transaction=new TransactionTemplate(manager);
     }

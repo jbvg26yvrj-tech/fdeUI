@@ -54,8 +54,8 @@ public class AuthUserAdapter implements AuthUserPort, UserManagementPort {
         UserEntity entity = UserEntity.builder()
                 .login(login)
                 .password(passwordHash)
-                .activated(false)
-                .passwordChangeRequired(true)
+                .activated(true)
+                .passwordChangeRequired(false)
                 .build();
 
         UserEntity saved = userRepository.save(entity);
