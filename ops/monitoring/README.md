@@ -18,7 +18,7 @@ API пишет JSON в stdout. Для Loki используйте существ
 - Через основной Service GET /livez и /readyz -> 200; при graceful shutdown readiness снимается.
 - Из разрешённого monitoring pod GET http://fde-api-management.fde.svc:9090/actuator/prometheus -> 200; из непривилегированного namespace соединение блокируется CNI.
 - Из браузерного ingress /actuator/prometheus -> 403/404; /api/v1/audit доступен только ADMIN.
-- В Prometheus Targets каждый API pod присутствует отдельно. При scale/restart series меняется, rate/increase учитывают counter reset. Счётчик количества потоков глобальный для общей БД: агрегировать max, не sum по репликам.
+- В Prometheus Targets каждый API pod присутствует отдельно. При scale/restart series меняется, rate/increase учитывают counter reset. Gauge fde_api_pipelines_current показывает количество потоков в общей БД: агрегировать max, не sum по репликам. Counter fde_api_pipeline_create_operations_total считает создания с момента запуска pod. Старое имя fde_api_pipelines_created_total больше не используется: нормализация Prometheus создавала конфликт с прежним gauge.
 - Проверьте срабатывание тестового алерта и его доставку дежурному. No data не означает здоровое состояние.
 
 ## Диагностика
