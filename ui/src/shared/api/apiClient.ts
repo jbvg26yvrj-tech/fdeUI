@@ -196,7 +196,10 @@ class ApiClient {
 
       return responseData;
     } catch (error) {
-      console.error(`❌ Final request failure: ${endpoint}`, error);
+      // A missing schedule is an expected read state, not a failed operation.
+      const absentSchedule = options.method === 'GET' && /^\/schedules\/[^/?]+$/.test(endpoint)
+        && error instanceof ApiError && error.status === 404;
+      if (!absentSchedule) console.error(`❌ Final request failure: ${endpoint}`, error);
       throw error;
     }
   }

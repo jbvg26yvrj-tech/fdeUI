@@ -12,6 +12,7 @@ import type { TableProps } from './types/type';
 
 export const Table = <T extends object>({
   columns,
+  filterColumns = columns,
   data,
   serverMeta,
   onTableChange,
@@ -115,7 +116,7 @@ export const Table = <T extends object>({
   );
 
   // Колонки, доступные для сортировки
-  const sortableColumns = columns
+  const sortableColumns = filterColumns
     .filter(col => col.sortable)
     .map(col => ({ field: col.key as string, label: col.title }));
 
@@ -165,7 +166,7 @@ export const Table = <T extends object>({
       <div className='fde-table-toolbar'>
         {showFilters && (
           <TableFilters
-            columns={columns}
+            columns={filterColumns}
             filters={filters}
             inputValues={inputValues}
             onFilterChange={handleFilterChange}

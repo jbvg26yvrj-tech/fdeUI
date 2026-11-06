@@ -35,6 +35,24 @@ class AnalyticsRepositoryTest {
  UUID session(UUID pipeline,String status,LocalDateTime time){UUID id=UUID.randomUUID();db.update("insert into sessions.pipeline_sessions(id,pipeline_id,start_dt,status,created_at,updated_at) values(?,?,?,?,?,?)",id,pipeline,time,status,time,time);return id;}
  void task(long id,UUID session,String type){db.update("insert into sessions.task_sessions(id,pipeline_session_id,task_order,type_code,is_done,props,created_at,updated_at) values(?,?,1,?,true,'{}',?,?)",id,session,type,from,from);}
  void file(long id,long task,String status,long bytes){db.update("insert into sessions.processed_files(id,task_session_id,file_name,file_size,status,created_at) values(?,?,'same.csv',?,?,?)",id,task,bytes,status,from.plusDays(2));}
+ @Autowired jakarta.persistence.EntityManager em;
+ @Test void attentionFilterAppliesBeforePaginationAndRespectsSessionRestrictions() {
+  session(pipe,"FAILED",from); session(pipe,"ABORTED",from.plusMinutes(1));
+  session(pipe,"FAILED",from.plusMinutes(2)); session(pipe,"ACTIVE",from.plusMinutes(3));
+  session(other,"FAILED",from); session(other,"FAILED",from.plusMinutes(1));
+  UUID success=session(other,"SUCCESS",from.plusMinutes(2));
+  assertThat(attention(Specification.allOf())).containsExactly(pipe);
+  // A success hidden by session RLS must not reset the visible failure series.
+  assertThat(attention((s,q,cb)->cb.notEqual(s.get("id"),success))).containsExactlyInAnyOrder(pipe,other);
+  assertThat(attention((s,q,cb)->cb.equal(s.get("pipelineId"),other))).isEmpty();
+  session(pipe,"SUCCESS",from.plusMinutes(4));
+  assertThat(attention(Specification.allOf())).isEmpty();
+ }
+ private List<UUID> attention(Specification<PipelineSessionEntity> restrictions) {
+  var cb=em.getCriteriaBuilder(); var q=cb.createQuery(UUID.class); var p=q.from(PipelineEntity.class);
+  q.select(p.get("id")).where(ru.spasibo.bilt.fdeapi.adapter.out.persistence.pipelines.PipelineSpecifications.needsAttention(restrictions).toPredicate(p,q,cb));
+  return em.createQuery(q).getResultList();
+ }
  @Test void countsOperationsWithoutDedupAndWithoutMultiplyingSessions(){UUID s=session(pipe,"FAILED",from); task(1,s,"SftpDownloadTask");task(2,s,"SftpUploadTask");task(3,s,"SftpDeleteTask");file(1,1,"SUCCESS",10);file(2,2,"SUCCESS",10);file(3,2,"SUCCESS",10);file(4,2,"FAILED",90);file(5,3,"SUCCESS",99);file(6,2,"SUCCESS",-1);file(7,2,"SKIPPED",100);
   Totals t=service.overview(query()).summary();assertThat(t.sessions()).isEqualTo(1);assertThat(t.failed()).isEqualTo(1);assertThat(t.receivedFiles()).isEqualTo(1);assertThat(t.receivedBytes()).isEqualTo(10);assertThat(t.sentFiles()).isEqualTo(3);assertThat(t.sentBytes()).isEqualTo(20);assertThat(t.failedFiles()).isEqualTo(1);assertThat(t.skippedFiles()).isEqualTo(1);assertThat(t.unknownSizeFiles()).isEqualTo(1);assertThat(t.errorRate()).isEqualTo(100);
  }

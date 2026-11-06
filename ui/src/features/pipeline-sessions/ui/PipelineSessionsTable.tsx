@@ -179,7 +179,7 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
 
   const columns: Column<PipelineSessionPageDto>[] = [
     { ...createTextColumn<PipelineSessionPageDto>('id', 'ID сессии', { width: 120 }), render: (value, row) => permissions?.canSessionProgressOpen ? <Link to={`/sessions/${row.id}`} state={{ returnTo }} onClick={() => remember(row.id)}>{String(value)}</Link> : String(value) },
-    createTextColumn('pipelineId', 'ID пайплайна', { width: 120 }),
+    createTextColumn('pipelineId', 'ID пайплайна', { width: 120, filterable: !pipelineId }),
     createTextColumn('pipelineName', 'Название пайплайна', {
       width: 150,
       sortable: false,

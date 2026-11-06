@@ -5,12 +5,13 @@ import { describeScheduleCron as parseCronExpression } from '../../../shared/ui/
 import { usePermissions } from '../../../shared/hooks/usePermissions';
 import { ConfirmationModal } from '../../../shared/components/ConfirmationModal';
 import { Button } from '../../../shared/ui/Button';
-import { Modal } from '../../../shared/ui/Modal';
+import { Modal, type ModalProps } from '../../../shared/ui/Modal';
 import { ApiError } from '../../../shared/api/ApiError';
 import type { ScheduleData } from '../types/ScheduleTypes';
 
 interface ScheduleSectionProps {
   pipelineId: string;
+  embedded?: boolean;
 }
 
 const COMMON_CRON_VALUES = [
@@ -24,7 +25,12 @@ const COMMON_CRON_VALUES = [
   { value: '0 0 0 1 * ?', label: 'В первый день месяца' },
 ];
 
-export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
+function InlineEditor({isOpen, title, children, footer}: ModalProps) {
+  if (!isOpen) return null;
+  return <section className='space-y-4'><h3 className='text-lg font-semibold'>{title}</h3>{children}<div className='border-t pt-4'>{footer}</div></section>;
+}
+
+export const ScheduleSection = ({ pipelineId, embedded = false }: ScheduleSectionProps) => {
   const { permissions, isAdmin } = usePermissions();
 
   const [schedule, setSchedule] = useState<ScheduleData | null>(null);
@@ -138,9 +144,10 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
     }
   };
 
+  const Editor = embedded ? InlineEditor : Modal;
   return (
     <>
-      <div className='bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden'>
+      <div hidden={embedded && isEditorOpen} className='bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden'>
         {/* Header */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
@@ -249,9 +256,9 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
       </div>
 
       {/* Cron Editor Modal */}
-      <Modal
+      <Editor
         isOpen={isAdmin && isEditorOpen}
-        onClose={() => setIsEditorOpen(false)}
+        onClose={() => { if (!isSaving) setIsEditorOpen(false); }}
         title={editorMode === 'create' ? 'Создание расписания' : 'Редактирование расписания'}
         variant='custom'
         size='sm'
@@ -278,11 +285,13 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
         <div className='space-y-4'>
           {/* Cron input */}
           <div>
-            <label className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
+            <label htmlFor='schedule-cron' className='block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'>
               Cron-выражение
             </label>
             <input
+              id='schedule-cron'
               type='text'
+              disabled={isSaving}
               value={cronValue}
               onChange={e => setCronValue(e.target.value)}
               placeholder='0 0/10 * * * ?'
@@ -325,7 +334,7 @@ export const ScheduleSection = ({ pipelineId }: ScheduleSectionProps) => {
             </div>
           </div>
         </div>
-      </Modal>
+      </Editor>
 
       {/* Delete Confirmation Modal */}
       <ConfirmationModal

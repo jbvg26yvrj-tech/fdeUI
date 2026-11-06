@@ -130,11 +130,22 @@ public class PipelineService {
                                                       String clientTo, String primaryDatacenter,
                                                       Boolean allOrNothing, String createdAt, String updatedAt,
                                                       String createdAtOperator, String updatedAtOperator) {
+        return getAll(page, size, sort, id, pipelineName, clientFrom, clientTo, primaryDatacenter,
+                allOrNothing, createdAt, updatedAt, createdAtOperator, updatedAtOperator, false);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<PipelinePageResponse> getAll(int page, int size, String sort,
+                                                      UUID id, String pipelineName, String clientFrom,
+                                                      String clientTo, String primaryDatacenter,
+                                                      Boolean allOrNothing, String createdAt, String updatedAt,
+                                                      String createdAtOperator, String updatedAtOperator, boolean needsAttention) {
         log.debug("Получение пайплайнов с RLS-фильтрацией");
         String login = SecurityContextHolder.getContext().getAuthentication().getName();
         log.debug("Текущий пользователь: {}", login);
 
         Specification<PipelineEntity> spec = accessScopeService.pipelines();
+        if (needsAttention) spec = spec.and(PipelineSpecifications.needsAttention(accessScopeService.sessionRestrictions()));
 
         Sort sortOrder = PaginationUtils.parseSort(sort, ALLOWED_SORT_FIELDS);
         PageRequest pageRequest = PageRequest.of(page, size, sortOrder);

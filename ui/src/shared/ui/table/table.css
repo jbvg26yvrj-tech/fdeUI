@@ -218,3 +218,14 @@
 .fde-list-back:hover {
   text-decoration: underline;
 }
+
+/* Keep the flow identity visible while inspecting monitoring columns. */
+@media (min-width: 768px) {
+  .fde-pipeline-list .fde-table-grid th:first-child,
+  .fde-pipeline-list .fde-table-grid td:first-child {
+    position: sticky; left: 0; z-index: 2; background: var(--fde-surface, #fff);
+  }
+  .dark .fde-pipeline-list .fde-table-grid th:first-child,
+  .dark .fde-pipeline-list .fde-table-grid td:first-child { background: #202b30; }
+}
+.fde-pipeline-list .fde-table-cell { vertical-align: top; }

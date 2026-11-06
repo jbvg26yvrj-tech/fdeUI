@@ -267,8 +267,8 @@ const ChangeDatacenterPage: React.FC = () => {
       </div>
 
       {/* Controls */}
-      <div className='flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3'>
-        <div className='flex items-center gap-3'>
+      <div className='flex flex-col gap-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-3'>
+        <div className='flex flex-wrap items-center gap-3'>
           <span className='text-sm text-gray-600 dark:text-gray-400'>
             Выбрано: <span className='font-semibold text-gray-900 dark:text-white'>{selectedIds.size}</span>
           </span>
@@ -283,7 +283,7 @@ const ChangeDatacenterPage: React.FC = () => {
             Снять выбор
           </Button>
         </div>
-        <div className='flex items-center gap-3'>
+        <div className='flex flex-wrap items-center gap-3'>
           <span className='text-sm text-gray-600 dark:text-gray-400'>Новый ЦОД:</span>
           <select
             disabled={selectionLocked}

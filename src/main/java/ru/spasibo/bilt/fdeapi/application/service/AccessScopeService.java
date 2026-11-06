@@ -67,7 +67,12 @@ public class AccessScopeService {
             return cb.and(cb.equal(root.get("pipelineId"), pipeline.get("id")),
                     visiblePipelines.toPredicate(pipeline, query, cb));
         };
-        return scope.and(rls("table.sessions", PipelineSessionEntity.class));
+        return scope.and(sessionRestrictions());
+    }
+
+    /** Session-only restrictions; caller must also enforce pipeline scope. */
+    public Specification<PipelineSessionEntity> sessionRestrictions() {
+        return isAdmin() ? Specification.allOf() : rls("table.sessions", PipelineSessionEntity.class);
     }
 
     private <T> Specification<T> rls(String resource, Class<T> type) {

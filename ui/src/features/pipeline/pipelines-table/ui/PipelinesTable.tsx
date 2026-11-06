@@ -1,5 +1,5 @@
 import React, { useCallback, useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useListReturn } from '../../../../shared/hooks/useListReturn';
 import { toast } from 'sonner';
 import { fetchPipelines, mapServerResponseToTableMeta } from '../api/pipelinesTableApi';
@@ -51,6 +51,8 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
 }) => {
   const { displayMode, setDisplayMode } = useViewMode(TABLE_ID);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const attentionOnly = searchParams.get("attention") === "1";
 
   // Modal state
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -97,6 +99,7 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
     loadServerData,
   } = useTableData<SimplePipelineData>({
     resourceCode: SYS_TABLE_RESOURCES.TABLE_PIPELINES.code,
+    dependencies: [attentionOnly],
     fetchData: async params => {
       const idFilter = params?.filters?.id;
       if (idFilter && typeof idFilter === 'string' && idFilter.trim() !== '') {
@@ -105,7 +108,7 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
           throw new ApiError('Неверный формат идентификатора пайплайна (UUID)', 400);
         }
       }
-      const response = await fetchPipelines(params);
+      const response = await fetchPipelines(params ? {...params, filters: {...params.filters, needsAttention: attentionOnly}} : undefined);
       return {
         data: response.content,
         meta: mapServerResponseToTableMeta(response),
@@ -125,10 +128,18 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
   }, [navigate, remember, returnTo]);
   const [schedulePipeline, setSchedulePipeline] = useState<SimplePipelineData | null>(null);
   const [revision, setRevision] = useState(0);
-  const [attentionOnly, setAttentionOnly] = useState(false);
   const monitoring = usePipelineSummaries(data.map(p => p.id), revision);
-  const attentionReady = attentionOnly && !monitoring.loading && !monitoring.error;
-  const visibleData = attentionReady ? data.filter(p => (monitoring.data[p.id]?.consecutiveFailures ?? 0) >= 2) : data;
+
+
+  const reloadRef = useRef(loadServerData);
+  reloadRef.current = loadServerData;
+  useEffect(() => {
+    if (!attentionOnly) return;
+    const refresh = () => { if (document.visibilityState !== 'hidden') void reloadRef.current(); };
+    const timer = window.setInterval(refresh, 60000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', refresh); };
+  }, [attentionOnly]);
 
   const isValidationError = error instanceof ApiError && error.status === 400;
 
@@ -256,21 +267,12 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
 
 
   const columns: Column<SimplePipelineData>[] = [
-    createTextColumn('id', 'ID пайплайна', { width: 120 }),
-    { ...createTextColumn<SimplePipelineData>('pipelineName', 'Название', { width: 180 }), render: (value, row) => permissions?.canPipelineDetails ? <Link to={`/pipelines/${row.id}`} state={{ returnTo }} onClick={() => remember(row.id)}>{String(value || row.id)}</Link> : String(value || '') },
-    createTextColumn('clientFrom', 'От клиента', { width: 150 }),
-    createTextColumn('clientTo', 'К клиенту', { width: 150 }),
-    createTextColumn('primaryDatacenter', 'Датацентр', { width: 120 }),
-    createCheckboxColumn('allOrNothing', 'Всё или ничего', { width: 120 }),
 
-    {
-      key: 'tasksCount',
-      title: 'Задачи',
-      sortable: false,
-      filterable: false,
-      width: 90,
-      render: (value: unknown) => String(value ?? 0),
-    },
+    { ...createTextColumn<SimplePipelineData>('pipelineName', 'Поток', { width: 260 }), render: (value, row) => <div className='whitespace-normal space-y-2'>
+      {permissions?.canPipelineDetails ? <Link className='font-semibold' to={`/pipelines/${row.id}`} state={{returnTo}} onClick={() => remember(row.id)}>{String(value || row.id)}</Link> : String(value || '')}
+      <div className='text-sm'>{row.clientFrom} → {row.clientTo} <span className='text-xs text-gray-500'>· {row.primaryDatacenter}</span></div>
+      <details className='text-xs text-gray-500'><summary className='cursor-pointer'>ID и параметры</summary><div className='break-all pt-1'>{row.id}</div><div>Задач: {row.tasksCount ?? 0} · Всё или ничего: {row.allOrNothing ? 'Да' : 'Нет'}</div><div>Создан: {row.createdAt ? new Date(row.createdAt).toLocaleString('ru-RU') : '—'}</div></details>
+    </div> },
     {
       key: 'schedule' as keyof SimplePipelineData,
       title: 'Расписание',
@@ -278,12 +280,12 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
       filterable: false,
       width: 140,
       render: (_value: unknown, row: SimplePipelineData) => {
-        return <span className='inline-flex flex-col gap-1'><ScheduleSummaryLabel summary={scheduleMap[row.id]} />{isAdmin && permissions?.canScheduleGet && <button type='button' className='text-blue-700 dark:text-blue-300 underline text-left' aria-label={`Расписание: ${row.pipelineName}`} onClick={e => { e.stopPropagation(); setSchedulePipeline(row); }}>Календарь</button>}</span>;
+        return <span className='inline-flex flex-col gap-2 whitespace-normal'><ScheduleSummaryLabel summary={scheduleMap[row.id]} />{isAdmin && permissions?.canScheduleGet && <button type='button' className='text-blue-700 dark:text-blue-300 underline text-left' aria-label={`Расписание: ${row.pipelineName}`} onClick={e => { e.stopPropagation(); setSchedulePipeline(row); }}>Календарь</button>}</span>;
       },
     },
-    { key: 'operations' as keyof SimplePipelineData, title: 'Сессии и передача', sortable: false, filterable: false, width: 270,
+    { key: 'operations' as keyof SimplePipelineData, title: 'Состояние и передача', sortable: false, filterable: false, width: 260,
       render: (_value, row) => <PipelineOperations pipelineId={row.id} summary={monitoring.data[row.id]} loading={monitoring.loading} canSessions={!!permissions?.canPipelineSessions} returnTo={returnTo} onNavigate={() => remember(row.id)} /> },
-    createDateTimeColumn('createdAt', 'Создан', { width: 100 }),
+
     createActionsColumn(row => [
       {
         action: 'view',
@@ -364,15 +366,16 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
       isValidationError={isValidationError}
     >
       {monitoring.error && <div role='alert'>Статистика недоступна. <Button size='sm' variant='outlined' onClick={() => setRevision(n => n + 1)}>Повторить</Button></div>}
-      {attentionOnly && !attentionReady && <p className='text-sm'>Фильтр внимания временно недоступен — показаны все пайплайны этой страницы.</p>}
-      {attentionReady && <p className='text-sm'>Показано {visibleData.length} из {data.length} пайплайнов на этой странице. Остальные страницы не проверены этим фильтром.</p>}
+      {attentionOnly && <p className='text-sm'>Потоки с двумя и более ошибками подряд · найдено {serverMeta?.pagination.totalElements ?? '…'}</p>}
       <ViewModeLayout
         displayMode={displayMode}
         setDisplayMode={setDisplayMode}
         isLoading={isLoading}
         headerActions={
           <div className='flex flex-wrap items-center gap-2'>
-            <label className='text-sm'><input type='checkbox' checked={attentionOnly} disabled={!attentionOnly && (monitoring.loading || monitoring.error)} onChange={e => setAttentionOnly(e.target.checked)} /> Требуют внимания (на этой странице)</label>
+            <label className='inline-flex items-center gap-2 text-sm'><input type='checkbox' checked={attentionOnly} onChange={e => { const next = new URLSearchParams(searchParams); if (e.target.checked) next.set('attention','1'); else next.delete('attention'); setSearchParams(next); }} /> Требуют внимания</label>
+            <Button variant='outlined' size='sm' onClick={() => { setRevision(n => n + 1); void loadServerData(); }}>Обновить</Button>
+            {monitoring.updatedAt && <span className='text-xs text-gray-500'>Статистика на {new Date(monitoring.updatedAt).toLocaleTimeString('ru-RU')} · обновление раз в минуту</span>}
             {isAdmin && (
               <Button
                 variant='outlined'
@@ -406,8 +409,11 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
       >
         {() => (
           <Table
+            key={String(attentionOnly)}
+            filterColumns={[...columns, createTextColumn('id', 'ID пайплайна'), createTextColumn('clientFrom', 'От клиента'), createTextColumn('clientTo', 'К клиенту'), createTextColumn('primaryDatacenter', 'Датацентр'), createCheckboxColumn('allOrNothing', 'Всё или ничего'), createDateTimeColumn('createdAt', 'Создан')]}
+            className='fde-pipeline-list'
             columns={columns}
-            data={visibleData}
+            data={data}
             serverMeta={serverMeta}
             initialPage={initialPage}
             pageSize={savedState?.pageSize || 10}
@@ -434,7 +440,7 @@ export const PipelinesTable: React.FC<PipelinesTableProps> = ({
       </ViewModeLayout>
 
       <Modal isOpen={isAdmin && !!schedulePipeline} onClose={() => { setSchedulePipeline(null); setRevision(n => n + 1); }} title={`Расписание: ${schedulePipeline?.pipelineName || ''}`} variant='custom' size='lg'>
-        {schedulePipeline && <ScheduleSection key={schedulePipeline.id} pipelineId={schedulePipeline.id} />}
+        {schedulePipeline && <ScheduleSection key={schedulePipeline.id} pipelineId={schedulePipeline.id} embedded />}
       </Modal>
       <PipelineFormModal
         isOpen={isFormModalOpen}

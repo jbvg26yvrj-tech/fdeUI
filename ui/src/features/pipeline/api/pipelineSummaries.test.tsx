@@ -35,3 +35,17 @@ it('reports summary errors separately from an empty healthy result', async () =>
   expect(hook.result.current.loading).toBe(false);
   expect(hook.result.current.data).toEqual({});
 });
+
+it('refreshes monitoring without clearing the last successful values', async () => {
+  vi.useFakeTimers();
+  try {
+    vi.mocked(apiClient.get).mockResolvedValue([{id: 'p1', consecutiveFailures: 2}]);
+    const hook = renderHook(() => usePipelineSummaries(['p1'], 0));
+    await act(async () => {});
+    expect(hook.result.current.data.p1?.consecutiveFailures).toBe(2);
+    vi.mocked(apiClient.get).mockResolvedValue([{id: 'p1', consecutiveFailures: 3}]);
+    await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
+    expect(hook.result.current.data.p1?.consecutiveFailures).toBe(3);
+    hook.unmount();
+  } finally { vi.useRealTimers(); }
+});

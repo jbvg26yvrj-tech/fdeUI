@@ -1,6 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useId } from 'react';
 import clsx from 'clsx';
 import { Button } from './Button';
+
+const openDialogs: string[] = [];
+let originalOverflow = '';
 
 export type ModalVariant = 'alert' | 'confirm' | 'custom' | 'info';
 export type ModalSize = 'sm' | 'md' | 'lg' | 'xl';
@@ -44,30 +47,42 @@ export const Modal: React.FC<ModalProps> = ({
 }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
+  const dialogId = useId();
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
+    if (!isOpen) return;
+    const opener = document.activeElement as HTMLElement | null;
+    if (!openDialogs.length) originalOverflow = document.body.style.overflow;
+    openDialogs.push(dialogId);
+    document.body.style.overflow = 'hidden';
+    const focusable = () => Array.from(modalRef.current?.querySelectorAll<HTMLElement>(
+      'button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex="0"]',
+    ) || []).filter(el => !el.closest('[hidden], [aria-hidden="true"]'));
+    if (!modalRef.current?.contains(document.activeElement)) (focusable()[0] || modalRef.current)?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (openDialogs.at(-1) !== dialogId) return;
+      if (event.key === 'Escape') { event.preventDefault(); closeRef.current(); }
+      if (event.key === 'Tab') {
+        const items = focusable();
+        const first = items[0], last = items.at(-1);
+        if (!first) { event.preventDefault(); modalRef.current?.focus(); }
+        else if (event.shiftKey && (document.activeElement === first || !modalRef.current?.contains(document.activeElement))) {
+          event.preventDefault(); last?.focus();
+        } else if (!event.shiftKey && (document.activeElement === last || !modalRef.current?.contains(document.activeElement))) {
+          event.preventDefault(); first.focus();
+        }
       }
     };
-    if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-    }
+    document.addEventListener('keydown', onKey);
     return () => {
-      document.removeEventListener('keydown', handleEscape);
+      document.removeEventListener('keydown', onKey);
+      const index = openDialogs.indexOf(dialogId);
+      if (index >= 0) openDialogs.splice(index, 1);
+      if (!openDialogs.length) document.body.style.overflow = originalOverflow;
+      if (opener?.isConnected) opener.focus();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, dialogId]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget && !disableBackdropClick) {
@@ -97,14 +112,15 @@ export const Modal: React.FC<ModalProps> = ({
   return (
     <div className='fixed inset-0 z-50 overflow-y-auto' onClick={handleBackdropClick}>
       <div
-        className='fixed inset-0 transition-opacity'
+        className='fixed inset-0 transition-opacity pointer-events-none'
         style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
       />
-      <div className='flex min-h-full items-center justify-center p-4'>
+      <div className='flex min-h-full items-center justify-center p-4' onClick={handleBackdropClick}>
         <div
           ref={modalRef}
+          role="dialog" aria-modal="true" aria-labelledby={dialogId} tabIndex={-1}
           className={clsx(
-            'relative bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 w-full',
+            'relative flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 w-full',
             sizeClasses[size],
             className,
           )}
@@ -112,7 +128,7 @@ export const Modal: React.FC<ModalProps> = ({
         >
           {/* Заголовок */}
           <div className='flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700'>
-            <h2 className='text-lg font-semibold text-gray-900 dark:text-white'>{title}</h2>
+            <h2 id={dialogId} className='text-lg font-semibold text-gray-900 dark:text-white'>{title}</h2>
             <div className='flex items-center space-x-2'>
               {additionalButtons && <div className='flex items-center'>{additionalButtons}</div>}
               {showCloseButton && (
@@ -137,7 +153,7 @@ export const Modal: React.FC<ModalProps> = ({
 
           {/* Контент */}
           <div
-            className='p-4 overflow-auto dark:text-gray-200'
+            className='p-4 min-h-0 overflow-auto dark:text-gray-200'
             style={maxHeight ? { maxHeight: `calc(${maxHeight} - 120px)` } : {}}
           >
             {children}

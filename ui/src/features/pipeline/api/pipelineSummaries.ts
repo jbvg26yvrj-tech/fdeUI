@@ -17,18 +17,28 @@ export async function loadPipelineSummaries(ids: string[], signal: AbortSignal) 
   }
   return result;
 }
-export function usePipelineSummaries(ids: string[], revision: number): {data: Record<string, PipelineSummary>; loading: boolean; error: boolean} {
+export function usePipelineSummaries(ids: string[], revision: number) {
   const key = ids.join(',');
-  const [state, setState] = useState<{key: string; revision: number; data: Record<string, PipelineSummary>; loading: boolean; error: boolean}>({key: '', revision: -1, data: {}, loading: false, error: false});
+  const [state, setState] = useState<{key: string; revision: number; data: Record<string, PipelineSummary>; loading: boolean; error: boolean; updatedAt: number | null}>({key: '', revision: -1, data: {}, loading: false, error: false, updatedAt: null});
   useEffect(() => {
     const controller = new AbortController();
-    setState({key, revision, data: {}, loading: !!key, error: false});
-    if (key) void loadPipelineSummaries(key.split(','), controller.signal).then(data => {
-      if (!controller.signal.aborted) setState({key, revision, data, loading: false, error: false});
-    }).catch(() => {
-      if (!controller.signal.aborted) setState({key, revision, data: {}, loading: false, error: true});
-    });
-    return () => controller.abort();
+    let running = false;
+    setState({key, revision, data: {}, loading: !!key, error: false, updatedAt: null});
+    const refresh = async () => {
+      if (!key || running || controller.signal.aborted) return;
+      running = true;
+      try {
+        const data = await loadPipelineSummaries(key.split(','), controller.signal);
+        if (!controller.signal.aborted) setState({key, revision, data, loading: false, error: false, updatedAt: Date.now()});
+      } catch {
+        if (!controller.signal.aborted) setState(previous => ({...previous, loading: false, error: true}));
+      } finally { running = false; }
+    };
+    void refresh();
+    const visibleRefresh = () => { if (document.visibilityState !== 'hidden') void refresh(); };
+    const timer = window.setInterval(visibleRefresh, 60000);
+    document.addEventListener('visibilitychange', visibleRefresh);
+    return () => { controller.abort(); window.clearInterval(timer); document.removeEventListener('visibilitychange', visibleRefresh); };
   }, [key, revision]);
-  return state.key === key && state.revision === revision ? state : {data: {}, loading: !!key, error: false};
+  return state.key === key && state.revision === revision ? state : {data: {}, loading: !!key, error: false, updatedAt: null};
 }

@@ -1,3 +1,4 @@
+import { Modal } from '../shared/ui/Modal';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { fireEvent, render, renderHook, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
@@ -107,4 +108,15 @@ it('renders separate loading, absent and error summaries for cards and table', (
   expect(screen.getByText('Не задано')).toBeInTheDocument();
   view.rerender(<ScheduleSummaryLabel summary={{ status: 'error' }} />);
   expect(screen.getByText('Не удалось загрузить')).toBeInTheDocument();
+});
+
+it('edits a schedule inside the list dialog without opening another dialog', async () => {
+  context(true);
+  vi.mocked(schedulesApi.getSchedule).mockRejectedValue(new ApiError('missing', 404));
+  render(<Modal isOpen onClose={() => {}} title="Schedule" variant="custom"><ScheduleSection pipelineId="p" embedded /></Modal>);
+  fireEvent.click(await screen.findByRole('button', {name: 'Создать расписание'}));
+  expect(screen.getAllByRole('dialog')).toHaveLength(1);
+  expect(screen.getByRole('textbox', {name: 'Cron-выражение'})).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', {name: 'Отмена'}));
+  expect(screen.getByRole('button', {name: 'Создать расписание'})).toBeInTheDocument();
 });

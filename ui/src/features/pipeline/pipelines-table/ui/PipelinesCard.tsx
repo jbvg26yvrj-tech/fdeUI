@@ -49,30 +49,15 @@ export const PipelineCard: React.FC<PipelineCardProps> = ({
   onTrigger,
 }) => {
   const fields: CardField[] = [
-    { key: 'id', label: 'ID' },
-    { key: 'clientFrom', label: 'От клиента' },
-    { key: 'clientTo', label: 'К клиенту' },
-    { key: 'primaryDatacenter', label: 'Датацентр' },
-    { key: 'allOrNothing', label: 'Всё или ничего' },
-
-    {
-      key: 'tasksCount',
-      label: 'Задачи',
-      render: (value: number) => <span>{value ?? 0}</span>,
-    },
+    { key: 'route', label: 'Маршрут', render: () => <span>{pipeline.clientFrom} → {pipeline.clientTo}</span> },
+    { key: 'primaryDatacenter', label: 'ЦОД' },
     {
       key: 'schedule' as keyof SimplePipelineData,
       label: 'Расписание',
       render: () => <span className='relative z-10 inline-flex flex-col gap-1'><ScheduleSummaryLabel summary={scheduleSummary} />{onSchedule && <button type='button' className='text-blue-700 dark:text-blue-300 underline text-left' aria-label={`Расписание: ${pipeline.pipelineName}`} onClick={e => { e.stopPropagation(); onSchedule(pipeline); }}>Календарь</button>}</span>,
     },
     { key: 'operations', label: 'Передача', render: () => <PipelineOperations pipelineId={pipeline.id} summary={monitoringSummary} loading={monitoringLoading} canSessions={permissions.canPipelineSessions} returnTo={returnTo} onNavigate={onNavigate} /> },
-    {
-      key: 'createdAt',
-      label: 'Создан',
-      render: (value: string | null | undefined) => (
-        <span>{value ? new Date(value).toLocaleString('ru-RU') : '-'}</span>
-      ),
-    },
+    { key: 'id', label: 'ID', render: () => <details className='relative z-10 text-xs break-all'><summary className='cursor-pointer'>{pipeline.id.slice(0,8)}…</summary>{pipeline.id}</details> },
   ];
 
   const actions: CardAction[] = [

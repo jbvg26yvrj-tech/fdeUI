@@ -41,6 +41,7 @@ export interface Column<T> {
 
 export interface TableProps<T> {
   columns: Column<T>[];
+  filterColumns?: Column<T>[];
   data: T[];
   serverMeta?: TableMeta;
   onTableChange?: TableChangeCallback;

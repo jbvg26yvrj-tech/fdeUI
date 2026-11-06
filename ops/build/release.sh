@@ -6,7 +6,7 @@ cd "$root"
 for tool in java mvn node npm python3; do command -v "$tool" >/dev/null; done
 node -e 'if(Number(process.versions.node.split(".")[0])<22) throw Error("Node22+ required")'
 mkdir -p logs
-(cd ui && npm ci --no-audit --no-fund && npm run test:run && npx --no-install tsc --noEmit && HTTPS=false VITE_HOST=127.0.0.1 VITE_PORT=5173 VITE_API_BACKEND_PORT= npm run build) > logs/ui-build.log 2>&1
+(cd ui && npm ci --no-audit --no-fund && npm run test:run -- --maxWorkers=1 && npx --no-install tsc --noEmit && HTTPS=false VITE_HOST=127.0.0.1 VITE_PORT=5173 VITE_API_BACKEND_PORT= npm run build) > logs/ui-build.log 2>&1
 mvn_args=(clean verify)
 if [ -n "${MAVEN_SETTINGS:-}" ]; then mvn_args+=(-s "$MAVEN_SETTINGS"); fi
 mvn "${mvn_args[@]}" > logs/api-build.log 2>&1

@@ -33,3 +33,10 @@ it('labels agreement overage explicitly and provides seven calendar days of anal
   const toDay = Date.parse(query.get('to')!.slice(0, 10));
   expect((toDay - fromDay) / 86400000).toBe(6);
 });
+
+it('opens only today when clicking the today totals', () => {
+  show();
+  const href = screen.getByRole('link', {name: /Сегодня/}).getAttribute('href')!;
+  const q = new URLSearchParams(href.split('?')[1]);
+  expect(q.get('from')!.slice(0, 10)).toBe(q.get('to')!.slice(0, 10));
+});

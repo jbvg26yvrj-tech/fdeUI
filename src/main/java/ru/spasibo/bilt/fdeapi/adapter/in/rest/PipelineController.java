@@ -118,15 +118,18 @@ public class PipelineController {
             @Parameter(description = "Фильтр по дате создания") @RequestParam(required = false) String createdAt,
             @Parameter(description = "Фильтр по дате обновления") @RequestParam(required = false) String updatedAt,
             @Parameter(description = "Оператор сравнения для даты создания") @RequestParam(required = false) String createdAtOperator,
-            @Parameter(description = "Оператор сравнения для даты обновления") @RequestParam(required = false) String updatedAtOperator
+            @Parameter(description = "Оператор сравнения для даты обновления") @RequestParam(required = false) String updatedAtOperator,
+            @RequestParam(defaultValue = "false") boolean needsAttention
             ) {
         if (page < 0) page = 0;
         if (size < 1) size = 1;
         if (size > 200) size = 200;
         log.debug("GET /api/v1/pipelines - page={}, size={}, sort={}", page, size, sort);
         PagedResponse<PipelinePageResponse> response =
-                pipelineService.getAll(page, size, sort, id, pipelineName, clientFrom, clientTo,
-                                        primaryDatacenter, allOrNothing, createdAt, updatedAt, createdAtOperator, updatedAtOperator  );
+                needsAttention ? pipelineService.getAll(page, size, sort, id, pipelineName, clientFrom, clientTo,
+                        primaryDatacenter, allOrNothing, createdAt, updatedAt, createdAtOperator, updatedAtOperator, true)
+                : pipelineService.getAll(page, size, sort, id, pipelineName, clientFrom, clientTo,
+                        primaryDatacenter, allOrNothing, createdAt, updatedAt, createdAtOperator, updatedAtOperator);
         return ResponseEntity.ok(response);
     }
 

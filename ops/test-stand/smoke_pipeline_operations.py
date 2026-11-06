@@ -19,6 +19,12 @@ def main():
         summaries = client.call('GET', '/analytics/pipeline-summaries?ids=' + ','.join(ids))
         assert {s['id'] for s in summaries} == set(ids)
         assert all(s['consecutiveFailures'] >= 0 and s['today']['sentBytes'] >= 0 for s in summaries)
+        attention = client.call('GET', '/pipelines?needsAttention=true&size=200')
+        attention_ids = {p['id'] for p in attention['content']}
+        if page['totalElements'] <= 100:
+            assert attention_ids == {s['id'] for s in summaries if s['consecutiveFailures'] >= 2}
+        for p in attention['content']:
+            assert client.call('GET', '/analytics/pipeline-summaries?ids=' + p['id'])[0]['consecutiveFailures'] >= 2
     pipeline_id = None
     try:
         pipeline = client.call('POST', '/pipelines', {
