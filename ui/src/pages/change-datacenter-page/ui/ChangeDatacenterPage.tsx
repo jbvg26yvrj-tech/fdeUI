@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { toast } from 'sonner';
 import { fetchPipelines, mapServerResponseToTableMeta } from '../../../features/pipeline/pipelines-table/api/pipelinesTableApi';
@@ -9,6 +9,8 @@ import { ConfirmationModal } from '../../../shared/components/ConfirmationModal'
 import StepProgressModal from './StepProgressModal';
 import type { StepItem, ItemResult } from './StepProgressModal';
 import type { SimplePipelineData } from '../../../features/pipeline/types/Types';
+import { collectMatchingPipelines, prepareSchedules, restoreSchedule, stopSchedule } from './selection';
+import type { TableParams } from '../../../shared/ui/table/types/type';
 import type { Column } from '../../../shared/ui/table/types/type';
 import Table from '../../../shared/ui/table/Table';
 import { TableWithStates } from '../../../shared/ui/table/components/TableStates';
@@ -33,6 +35,14 @@ const ChangeDatacenterPage: React.FC = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [selectedDc, setSelectedDc] = useState<'SC' | 'SP'>('SP');
 
+  const requestParams = useRef<TableParams>({ pagination: { page: 1, size: 20 }, filters: {}, sort: null });
+  const collection = useRef<AbortController | null>(null);
+  const [isCollecting, setIsCollecting] = useState(false);
+  const [wizardIds, setWizardIds] = useState<string[]>([]);
+  const [wizardDc, setWizardDc] = useState<'SC' | 'SP'>('SP');
+  const changingDatacenter = useRef(false);
+  useEffect(() => () => { collection.current?.abort(); }, []);
+
   // Wizard state
   const [wizardStep, setWizardStep] = useState<WizardStep>('select');
   const [savedSchedules, setSavedSchedules] = useState<Map<string, string>>(new Map());
@@ -55,6 +65,7 @@ const ChangeDatacenterPage: React.FC = () => {
   } = useTableData<SimplePipelineData>({
     resourceCode: SYS_TABLE_RESOURCES.TABLE_PIPELINES.code,
     fetchData: async (params) => {
+      if (params) requestParams.current = params;
       const response = await fetchPipelines(params);
       return {
         data: response.content,
@@ -71,6 +82,44 @@ const ChangeDatacenterPage: React.FC = () => {
       });
     },
   });
+
+  const selectionLocked = isCollecting || isPreparingWizard || wizardStep !== 'select';
+  const onTableChange = (params: TableParams) => {
+    if (isPreparingWizard || wizardStep !== 'select') return;
+    if (JSON.stringify(requestParams.current.filters) !== JSON.stringify(params.filters)) {
+      collection.current?.abort();
+      collection.current = null;
+      setIsCollecting(false);
+      setSelectedIds(new Set());
+    }
+    requestParams.current = params;
+    handleTableChange(params);
+  };
+  const selectAllMatching = async () => {
+    if (selectionLocked || isLoading || error) return;
+    const controller = new AbortController();
+    collection.current = controller;
+    setIsCollecting(true);
+    const params = structuredClone(requestParams.current);
+    try {
+      const rows = await collectMatchingPipelines(params, serverMeta?.pagination.totalElements || 0, params => fetchPipelines(params, controller.signal), controller.signal);
+      if (collection.current !== controller || controller.signal.aborted) return;
+      setSelectedIds(new Set(rows.map(row => row.id)));
+      setPipelineNames(prev => new Map([...prev, ...rows.map(row => [row.id, row.pipelineName] as const)]));
+    } catch (err) {
+      if (!controller.signal.aborted) toast.error(err instanceof Error ? err.message : 'Не удалось собрать маршруты. Предыдущий выбор сохранён.');
+    } finally {
+      if (collection.current === controller) {
+        collection.current = null;
+        setIsCollecting(false);
+      }
+    }
+  };
+  const cancelCollection = () => {
+    collection.current?.abort();
+    collection.current = null;
+    setIsCollecting(false);
+  };
 
   const isValidationError = error instanceof ApiError && error.status === 400;
 
@@ -95,81 +144,66 @@ const ChangeDatacenterPage: React.FC = () => {
     setSelectedIds(new Set());
   }, []);
 
-  const getItemName = (id: string) => pipelineNames.get(id) || id.substring(0, 8);
+  const getItemName = useCallback((id: string) => pipelineNames.get(id) || id.substring(0, 8), [pipelineNames]);
 
-  const buildStepItems = useCallback((): StepItem[] => {
-    return Array.from(selectedIds).map(id => ({
-      id,
-      label: getItemName(id),
-    }));
-  }, [selectedIds, pipelineNames]);
-
-  // --- Wizard start: fetch schedules, then go to confirm ---
+  // Freeze the reviewed IDs and destination before any schedule preparation.
   const startWizard = useCallback(async () => {
-    setIsPreparingWizard(true);
-    const schedules = new Map<string, string>();
+    if (selectionLocked || selectedIds.size === 0) return;
     const ids = Array.from(selectedIds);
-
-    for (const id of ids) {
-      try {
-        const schedule = await schedulesApi.getSchedule(id);
-        if (schedule?.cronExpression) {
-          schedules.set(id, schedule.cronExpression);
-        }
-      } catch {
-        // No schedule for this pipeline — that's fine
-      }
+    const dc = selectedDc;
+    setIsPreparingWizard(true);
+    try {
+      const schedules = await prepareSchedules(ids, schedulesApi.getSchedule);
+      setSavedSchedules(schedules);
+      setWizardIds(ids);
+      setWizardDc(dc);
+      setStepItems(ids.map(id => ({ id, label: getItemName(id) })));
+      setWizardStep('confirm');
+    } catch (err) {
+      setSavedSchedules(new Map());
+      setStepItems([]);
+      setWizardIds([]);
+      toast.error(`Не удалось загрузить расписания. Смена ЦОД не начата. ${err instanceof Error ? err.message : ''}`);
+    } finally {
+      setIsPreparingWizard(false);
     }
-
-    setSavedSchedules(schedules);
-    setStepItems(buildStepItems());
-    setIsPreparingWizard(false);
-    setWizardStep('confirm');
-  }, [selectedIds, buildStepItems]);
+  }, [selectedIds, selectedDc, selectionLocked, getItemName]);
 
   // --- Step handlers ---
   const handleStopExecute = useCallback(async (id: string): Promise<ItemResult> => {
     if (!savedSchedules.has(id)) return 'skipped';
-    try {
-      await schedulesApi.deleteSchedule(id);
-      return 'success';
-    } catch (err) {
-      throw err;
-    }
+    await stopSchedule(id, schedulesApi.deleteSchedule);
+    return 'success';
   }, [savedSchedules]);
 
   const handleTriggerExecute = useCallback(async (id: string): Promise<ItemResult> => {
-    try {
-      await triggersApi.manualTrigger(id);
-      return 'success';
-    } catch (err) {
-      throw err;
-    }
+    await triggersApi.manualTrigger(id);
+    return 'success';
   }, []);
 
   const handleChangeDc = useCallback(async () => {
+    if (wizardIds.length === 0 || changingDatacenter.current) return;
+    changingDatacenter.current = true;
     try {
       const result = await pipelinesCrudApi.bulkChangeDatacenter(
-        selectedDc,
-        Array.from(selectedIds),
+        wizardDc,
+        [...wizardIds],
       );
       toast.success(`ЦОД изменён на ${result.datacenter}. Обновлено: ${result.updatedCount}`);
       setWizardStep('restore');
     } catch (err) {
       const message = err instanceof ApiError ? err.message : 'Ошибка при смене ЦОД';
       toast.error(message);
+    } finally {
+      changingDatacenter.current = false;
     }
-  }, [selectedDc, selectedIds]);
+  }, [wizardDc, wizardIds]);
 
   const handleRestoreExecute = useCallback(async (id: string): Promise<ItemResult> => {
     const cron = savedSchedules.get(id);
     if (!cron) return 'skipped';
-    try {
-      await schedulesApi.createSchedule({ pipelineId: id, cronExpression: cron });
-      return 'success';
-    } catch (err) {
-      throw err;
-    }
+    await restoreSchedule(id, cron, schedulesApi.getSchedule, schedulesApi.createSchedule);
+    return 'success';
   }, [savedSchedules]);
 
   const handleWizardComplete = useCallback(() => {
@@ -179,8 +213,10 @@ const ChangeDatacenterPage: React.FC = () => {
   }, [loadServerData]);
 
   const handleCancelWizard = useCallback(() => {
-    setWizardStep('select');
-  }, []);
+    if (changingDatacenter.current) return;
+    // After schedule changes, leaving the flow must first restore saved schedules.
+    setWizardStep(wizardStep === 'confirm' ? 'select' : 'restore');
+  }, [wizardStep]);
 
   // --- Step items filtered for schedules (stop/restore only run for those with schedules) ---
   const scheduleStepItems = stepItems.filter(item => savedSchedules.has(item.id));
@@ -196,6 +232,8 @@ const ChangeDatacenterPage: React.FC = () => {
         <input
           type='checkbox'
           checked={selectedIds.has(row.id)}
+          disabled={selectionLocked || isLoading || !!error}
+          aria-label={`Выбрать ${row.pipelineName}`}
           onChange={() => toggleSelect(row.id)}
           className='w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 cursor-pointer'
         />
@@ -234,16 +272,21 @@ const ChangeDatacenterPage: React.FC = () => {
           <span className='text-sm text-gray-600 dark:text-gray-400'>
             Выбрано: <span className='font-semibold text-gray-900 dark:text-white'>{selectedIds.size}</span>
           </span>
-          <Button variant='outlined' size='sm' onClick={selectAllOnPage} disabled={isLoading}>
+          <Button variant='outlined' size='sm' onClick={selectAllOnPage} disabled={isLoading || selectionLocked || !!error}>
             Выбрать все на странице
           </Button>
-          <Button variant='outlined' size='sm' onClick={deselectAll} disabled={selectedIds.size === 0}>
+          <Button variant='outlined' size='sm' onClick={selectAllMatching} disabled={isLoading || selectionLocked || !!error || !serverMeta?.pagination.totalElements}>
+            Выбрать все {serverMeta?.pagination.totalElements || 0} по фильтрам
+          </Button>
+          {isCollecting && <Button variant='outlined' size='sm' onClick={cancelCollection}>Отменить сбор</Button>}
+          <Button variant='outlined' size='sm' onClick={deselectAll} disabled={selectedIds.size === 0 || selectionLocked}>
             Снять выбор
           </Button>
         </div>
         <div className='flex items-center gap-3'>
           <span className='text-sm text-gray-600 dark:text-gray-400'>Новый ЦОД:</span>
           <select
+            disabled={selectionLocked}
             value={selectedDc}
             onChange={e => setSelectedDc(e.target.value as 'SC' | 'SP')}
             className='px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-1 focus:ring-blue-500'
@@ -256,13 +299,21 @@ const ChangeDatacenterPage: React.FC = () => {
             variant='primary'
             size='sm'
             onClick={startWizard}
-            disabled={selectedIds.size === 0 || isPreparingWizard}
+            disabled={selectedIds.size === 0 || selectionLocked || isLoading || !!error}
           >
             {isPreparingWizard ? 'Загрузка...' : 'Сменить ЦОД'}
           </Button>
         </div>
       </div>
 
+      {isCollecting && <p role='status'>Собираем и проверяем все маршруты по фильтрам. Действия доступны после завершения.</p>}
+      <label className='flex items-center gap-2 text-sm'>
+        Маршрутов на странице
+        <select aria-label='Маршрутов на странице' disabled={selectionLocked || isLoading} value={serverMeta?.pagination.size || 20}
+          onChange={event => onTableChange({ ...requestParams.current, pagination: { page: 1, size: Number(event.target.value) } })}>
+          {[20, 50, 100, 200].map(size => <option key={size} value={size}>{size}</option>)}
+        </select>
+      </label>
       {/* Table */}
       <TableWithStates
         permissionsLoading={permissionsLoading}
@@ -277,7 +328,8 @@ const ChangeDatacenterPage: React.FC = () => {
           data={data}
           columns={columns}
           loading={isLoading}
-          onTableChange={handleTableChange}
+          onTableChange={onTableChange}
+          pageSize={serverMeta?.pagination.size || 20}
           serverMeta={serverMeta}
           initialFilters={savedState?.filters}
           initialSort={
@@ -304,14 +356,15 @@ const ChangeDatacenterPage: React.FC = () => {
         message={
           <div className='space-y-3 text-sm'>
             <p>
-              Выбрано маршрутов: <span className='font-semibold'>{selectedIds.size}</span>.
-              Новый ЦОД: <span className='font-semibold'>{selectedDc}</span>.
+              Выбрано маршрутов: <span className='font-semibold'>{wizardIds.length}</span>.
+              Новый ЦОД: <span className='font-semibold'>{wizardDc}</span>.
             </p>
+            <p>Не закрывайте и не перезагружайте страницу до восстановления расписаний. После перезагрузки сохранённые расписания недоступны для автоматического восстановления.</p>
             <p>Будет выполнено последовательно:</p>
             <ol className='list-decimal list-inside space-y-1 text-gray-600 dark:text-gray-400'>
               <li>Остановить расписания ({scheduleStepItems.length} маршрутов с расписанием)</li>
               <li>Запустить маршруты принудительно ({stepItems.length})</li>
-              <li>Сменить ЦОД на {selectedDc}</li>
+              <li>Сменить ЦОД на {wizardDc}</li>
               <li>Восстановить расписания ({scheduleStepItems.length})</li>
             </ol>
           </div>
@@ -340,6 +393,7 @@ const ChangeDatacenterPage: React.FC = () => {
       <StepProgressModal
         isOpen={wizardStep === 'trigger'}
         title='Шаг 2/4 — Принудительный запуск'
+        allowRetry={false}
         items={stepItems}
         onExecute={handleTriggerExecute}
         onComplete={() => setWizardStep('changeDc')}
@@ -354,11 +408,12 @@ const ChangeDatacenterPage: React.FC = () => {
         onClose={handleCancelWizard}
         onConfirm={handleChangeDc}
         title='Шаг 3/4 — Смена ЦОД'
+        cancelText='Восстановить расписания и завершить'
         confirmText='Сменить ЦОД'
         message={
           <p className='text-center'>
-            Сменить ЦОД на <span className='font-semibold'>{selectedDc}</span> для{' '}
-            <span className='font-semibold'>{selectedIds.size}</span> маршрутов?
+            Сменить ЦОД на <span className='font-semibold'>{wizardDc}</span> для{' '}
+            <span className='font-semibold'>{wizardIds.length}</span> маршрутов?
           </p>
         }
       />

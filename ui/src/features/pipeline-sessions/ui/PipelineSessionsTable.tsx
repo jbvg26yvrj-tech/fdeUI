@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { listStateKey, readListState, writeListState } from '../../../shared/hooks/listReturnState';
 import { useListReturn } from '../../../shared/hooks/useListReturn';
 import { toast } from 'sonner';
 import { pipelineSessionsApi } from '../api/pipelineSessionsApi';
@@ -46,7 +47,11 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [pipelineId, clearPipelineId] = useUrlFilterParam('pipelineId');
+  const [pipelineId] = useUrlFilterParam('pipelineId');
+  const search = new URLSearchParams(location.search);
+  const history = search.get('history') === 'all';
+  const forcedStatus = search.get('status') === 'FAILED' ? 'FAILED' : undefined;
+  const pipelinesReturn = typeof location.state?.returnTo === 'string' && /^\/pipelines(?:[?]|$)/.test(location.state.returnTo) ? location.state.returnTo : '/pipelines';
   const { displayMode, setDisplayMode } = useViewMode(TABLE_ID);
 
   // Stop session confirmation state
@@ -83,6 +88,15 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
     setStopModalState({ isOpen: true, session });
   }, []);
 
+  const historyKey = listStateKey(SYS_TABLE_RESOURCES.TABLE_SESSIONS.code, location.search);
+  // A new complete-history scope starts with no saved global date/status filters.
+  // Subsequent visits restore filters and pagination from this scope only.
+  if (history && historyKey && !readListState(historyKey).params) {
+    writeListState(historyKey, {params: {
+      pagination: {page: 1, size: 10}, sort: {field: 'startDt', order: 'desc'},
+      filters: forcedStatus ? {status: forcedStatus} : {},
+    }});
+  }
   const {
     data,
     isLoading,
@@ -105,9 +119,7 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
         filters: null,
       };
 
-      const filtersWithPipelineId = pipelineId
-        ? { ...safeParams.filters, pipelineId }
-        : safeParams.filters;
+      const filtersWithPipelineId = { ...safeParams.filters, ...(pipelineId ? {pipelineId} : {}), ...(forcedStatus ? {status: forcedStatus} : {}) };
 
       const response = await pipelineSessionsApi.getPipelineSessionsWithParams({
         ...safeParams,
@@ -119,7 +131,7 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
         meta: mapServerResponseToTableMeta(response),
       };
     },
-    dependencies: [pipelineId],
+    dependencies: [pipelineId, forcedStatus, history],
   });
 
   const { remember, lastId, returnTo } = useListReturn(SYS_TABLE_RESOURCES.TABLE_SESSIONS.code, isLoading || isLoadingState || permissionsLoading || isLoadingStatuses);
@@ -244,6 +256,8 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
       isValidationError={isValidationError}
     >
       <div className='space-y-4'>
+        {pipelineId && <Link to={pipelinesReturn} className='text-blue-700 dark:text-blue-300 underline'>← К пайплайнам</Link>}
+        {pipelineId && forcedStatus && <p>Только ошибки. <Link className='text-blue-700 dark:text-blue-300 underline' to={'/sessions?' + new URLSearchParams({pipelineId, history: 'all'})} state={location.state}>Все сессии этого пайплайна →</Link></p>}
         {pipelineId && (
           <div className='mb-4 p-4 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-lg'>
             <div className='flex justify-between items-center'>
@@ -259,7 +273,7 @@ export const PipelineSessionsTable: React.FC<PipelineSessionsTableProps> = ({
                 </p>
               </div>
               <button
-                onClick={clearPipelineId}
+                onClick={() => navigate('/sessions')}
                 className='px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-50 dark:hover:bg-gray-700'
               >
                 Показать всё

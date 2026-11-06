@@ -35,6 +35,13 @@ public class CreatePipelineRequest {
     @Size(max = 10)
     private String primaryDatacenter;
 
+    @jakarta.validation.constraints.Min(1)
+    @jakarta.validation.constraints.Max(9007199254740991L)
+    private Long agreedVolumeBytes;
+
+    @jakarta.validation.constraints.Pattern(regexp = "RUN|DAY|MONTH")
+    private String agreedVolumePeriod;
+
     @Builder.Default
     private Boolean allOrNothing = true;
 

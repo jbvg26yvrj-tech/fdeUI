@@ -1,3 +1,5 @@
+import { VolumeAgreementFields } from '../VolumeAgreementFields';
+import { parseVolume, volumeFromBytes, volumePeriods } from '../volumeAgreement';
 import { useEffect, useRef, useState } from 'react';
 import type { PipelineData, SimplePipelineData } from '../../types/Types';
 import type { TaskType } from '../../types/TaskTypes';
@@ -30,6 +32,7 @@ interface Props {
   isLoading?: boolean;
 }
 export function PipelineCreateWizard({ onClose, onSave, isLoading = false }: Props) {
+  const [volume, setVolume] = useState(() => volumeFromBytes());
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [step, setStep] = useState(0);
   const [visited, setVisited] = useState(0);
@@ -104,6 +107,8 @@ export function PipelineCreateWizard({ onClose, onSave, isLoading = false }: Pro
     setError('');
   }
   function generalError() {
+    const volumeError = parseVolume(volume.amount, volume.unit).error;
+    if (volumeError) return volumeError;
     if (
       draft.pipelineName.length > 255 ||
       draft.clientFrom.length > 100 ||
@@ -189,7 +194,7 @@ export function PipelineCreateWizard({ onClose, onSave, isLoading = false }: Pro
     setSaving(true);
     setError('');
     try {
-      const result = await onSave(serialize(draft, schemas));
+      const result = await onSave({ ...serialize(draft, schemas), agreedVolumeBytes: parseVolume(volume.amount, volume.unit).bytes, agreedVolumePeriod: volume.period });
       if (alive.current) {
         if (result?.id) setCreated(result);
         else
@@ -554,6 +559,7 @@ export function PipelineCreateWizard({ onClose, onSave, isLoading = false }: Pro
                           />
                         </label>
                       </div>
+                      <VolumeAgreementFields value={volume} onChange={v => { setVolume(v); setDirty(true); setError(''); }} />
                       <datalist id='pw-clients'>
                         {clientValues.map(value => (
                           <option key={value} value={value} />
@@ -700,6 +706,7 @@ export function PipelineCreateWizard({ onClose, onSave, isLoading = false }: Pro
                         {draft.pipelineName} · {draft.primaryDatacenter} · Все или ничего:{' '}
                         {draft.allOrNothing ? 'да' : 'нет'}
                       </p>
+                      <p>Согласованный объём: {volume.amount.trim() ? `${volume.amount} ${volume.unit} · ${volumePeriods[volume.period].toLowerCase()}` : 'не задан'}</p>
                       {renderFlow()}
                       <p className='pw-muted'>
                         Проверяется заполнение настроек. Доступность клиентов, соединение и наличие

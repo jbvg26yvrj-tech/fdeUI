@@ -18,6 +18,7 @@ interface StepProgressModalProps {
   onCancel?: () => void;
   skipLabel?: string;
   nextLabel?: string;
+  allowRetry?: boolean;
 }
 
 const StepProgressModal: React.FC<StepProgressModalProps> = ({
@@ -29,12 +30,13 @@ const StepProgressModal: React.FC<StepProgressModalProps> = ({
   onCancel,
   skipLabel,
   nextLabel = 'Далее',
+  allowRetry = true,
 }) => {
   const [status, setStatus] = useState<'idle' | 'running' | 'done'>('idle');
   const [completed, setCompleted] = useState(0);
   const [errors, setErrors] = useState<string[]>([]);
   const [results, setResults] = useState<Map<string, ItemResult>>(new Map());
-  const cancelledRef = useRef(false);
+  const runningRef = useRef(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -42,32 +44,36 @@ const StepProgressModal: React.FC<StepProgressModalProps> = ({
       setCompleted(0);
       setErrors([]);
       setResults(new Map());
-      cancelledRef.current = false;
+
     }
   }, [isOpen]);
 
   const run = useCallback(async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
     setStatus('running');
-    setCompleted(0);
+    const pending = items.filter(item => !results.has(item.id) || results.get(item.id) === 'error');
+    setCompleted(items.length - pending.length);
     setErrors([]);
-    const newResults = new Map<string, ItemResult>();
+    const newResults = new Map(results);
 
-    for (let i = 0; i < items.length; i++) {
-      if (cancelledRef.current) break;
-      const item = items[i];
+    for (let i = 0; i < pending.length; i++) {
+      const item = pending[i];
       try {
         const result = await onExecute(item.id);
         newResults.set(item.id, result);
+        if (result === 'error') setErrors(prev => [...prev, `${item.label}: Ошибка`]);
       } catch (err) {
         newResults.set(item.id, 'error');
         setErrors(prev => [...prev, `${item.label}: ${err instanceof Error ? err.message : 'Ошибка'}`]);
       }
-      setCompleted(i + 1);
+      setCompleted(items.length - pending.length + i + 1);
       setResults(new Map(newResults));
     }
 
+    runningRef.current = false;
     setStatus('done');
-  }, [items, onExecute]);
+  }, [items, onExecute, results]);
 
   useEffect(() => {
     if (isOpen && status === 'idle') {
@@ -96,18 +102,21 @@ const StepProgressModal: React.FC<StepProgressModalProps> = ({
       disableBackdropClick={true}
       footer={
         <div className='flex justify-end gap-2'>
-          {status === 'running' && onCancel && (
-            <Button variant='outlined' size='sm' onClick={() => { cancelledRef.current = true; onCancel(); }}>
-              Отмена
+          {status === 'done' && onCancel && (
+            <Button variant='outlined' size='sm' onClick={onCancel}>
+              Восстановить расписания и завершить
             </Button>
           )}
+          {status === 'done' && errorCount > 0 && allowRetry && (
+            <Button variant='outlined' size='sm' onClick={run}>Повторить ошибки</Button>
+          )}
           {status === 'done' && skipLabel && (
-            <Button variant='outlined' size='sm' onClick={onComplete}>
+            <Button variant='outlined' size='sm' disabled={errorCount > 0} onClick={onComplete}>
               {skipLabel}
             </Button>
           )}
           {status === 'done' && (
-            <Button variant='primary' size='sm' onClick={onComplete}>
+            <Button variant='primary' size='sm' disabled={errorCount > 0} onClick={onComplete}>
               {nextLabel}
             </Button>
           )}
@@ -144,6 +153,11 @@ const StepProgressModal: React.FC<StepProgressModalProps> = ({
           </div>
         )}
 
+        {!allowRetry && errorCount > 0 && (
+          <p role='alert' className='text-sm text-amber-700 dark:text-amber-300'>
+            Результат запуска не подтверждён. Проверьте сессии; повторный запрос может запустить поток ещё раз.
+          </p>
+        )}
         {/* Errors list */}
         {errors.length > 0 && (
           <div className='max-h-32 overflow-y-auto text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded p-2 space-y-1'>
@@ -154,7 +168,7 @@ const StepProgressModal: React.FC<StepProgressModalProps> = ({
         {/* Running indicator */}
         {status === 'running' && (
           <p className='text-sm text-gray-500 dark:text-gray-400 text-center animate-pulse'>
-            Выполняется...
+            Выполняется... Дождитесь завершения. Затем можно восстановить расписания и завершить операцию.
           </p>
         )}
       </div>

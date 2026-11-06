@@ -107,7 +107,7 @@ public class PipelineController {
     })
     public ResponseEntity<PagedResponse<PipelinePageResponse>> getAll(
             @Parameter(description = "Номер страницы (начиная с 0)") @RequestParam(defaultValue = "0") int page,
-            @Parameter(description = "Размер страницы (1..100)") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Размер страницы (1..200)") @RequestParam(defaultValue = "20") int size,
             @Parameter(description = "Поле и направление сортировки") @RequestParam(required = false) String sort,
             @Parameter(description = "Фильтр по идентификатору пайплайна") @RequestParam(required = false) UUID id,
             @Parameter(description = "Фильтр по имени пайплайна") @RequestParam(required = false) String pipelineName,
@@ -122,7 +122,7 @@ public class PipelineController {
             ) {
         if (page < 0) page = 0;
         if (size < 1) size = 1;
-        if (size > 100) size = 100;
+        if (size > 200) size = 200;
         log.debug("GET /api/v1/pipelines - page={}, size={}, sort={}", page, size, sort);
         PagedResponse<PipelinePageResponse> response =
                 pipelineService.getAll(page, size, sort, id, pipelineName, clientFrom, clientTo,

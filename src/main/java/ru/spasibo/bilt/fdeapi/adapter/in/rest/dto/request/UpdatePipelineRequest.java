@@ -30,6 +30,13 @@ public class UpdatePipelineRequest {
     @Size(max = 10)
     private String primaryDatacenter;
 
+    @jakarta.validation.constraints.Min(0)
+    @jakarta.validation.constraints.Max(9007199254740991L)
+    private Long agreedVolumeBytes;
+
+    @jakarta.validation.constraints.Pattern(regexp = "RUN|DAY|MONTH")
+    private String agreedVolumePeriod;
+
     private Boolean allOrNothing;
 
     @Valid

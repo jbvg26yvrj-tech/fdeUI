@@ -17,6 +17,14 @@ public class AnalyticsService  {
         this.repository=repository;
         this.zone=ZoneId.of(zone).getId();
     }
+    public List<PipelineSummary> pipelineSummaries(List<UUID> ids) {
+        if (ids == null || ids.isEmpty() || ids.size() > 200 || ids.stream().anyMatch(Objects::isNull)
+                || new HashSet<>(ids).size() != ids.size()) {
+            throw new ValidationException("Укажите от 1 до 200 различных идентификаторов пайплайнов");
+        }
+        LocalDateTime today = LocalDate.now(ZoneId.of(zone)).atStartOfDay();
+        return repository.pipelineSummaries(ids, today, zone);
+    }
     public Config config() {
         return new Config(zone,testStand);
     }

@@ -13,4 +13,11 @@ class AnalyticsServiceTest {
   var node=mapper.valueToTree(new Point(LocalDateTime.parse("2026-01-01T00:00:00"),new Totals()));
   assertThat(node.has("totals")).isFalse();assertThat(node.get("skippedFiles").asLong()).isZero();assertThat(node.get("sessions").asLong()).isZero();assertThat(node.get("errorRate").isNull()).isTrue();
  }
+ @Test void rejectsInvalidSummaryBatchBeforeRepositoryAccess() {
+  var r=mock(AnalyticsRepository.class);var s=new AnalyticsService(r,"UTC");
+  assertThatThrownBy(()->s.pipelineSummaries(java.util.List.of())).isInstanceOf(RuntimeException.class);
+  assertThatThrownBy(()->s.pipelineSummaries(java.util.stream.IntStream.range(0,201).mapToObj(i->java.util.UUID.randomUUID()).toList())).isInstanceOf(RuntimeException.class);
+  var id=java.util.UUID.randomUUID();assertThatThrownBy(()->s.pipelineSummaries(java.util.List.of(id,id))).isInstanceOf(RuntimeException.class);
+  verifyNoInteractions(r);
+ }
 }

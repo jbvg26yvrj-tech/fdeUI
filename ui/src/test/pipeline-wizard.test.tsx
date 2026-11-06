@@ -200,3 +200,31 @@ it('ignores stale protocol schemas and removes old action properties from review
   await screen.findByText('Пайплайн создан');
   expect(save.mock.calls[0][0].tasks[1].props).toEqual([{ key: 'sourceDir', value: '/in' }]);
 });
+it('captures the agreed outbound volume and period in the confirmed pipeline', async () => {
+  const save = vi.fn().mockResolvedValue({ id: 'with-volume' });
+  render(<PipelineFormModal isOpen mode='create' onClose={vi.fn()} onSave={save} />);
+  fireEvent.change(screen.getByLabelText('Согласованный объём'), { target: { value: '1.25' } });
+  fireEvent.change(screen.getByLabelText('Период согласования'), { target: { value: 'MONTH' } });
+  general();
+  fireEvent.change(await screen.findByLabelText('Директория источника'), { target: { value: '/in' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Далее' }));
+  expect(screen.getByText(/1.25 GB/)).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Подтвердить и создать' }));
+  await screen.findByText('Пайплайн создан');
+  expect(save.mock.calls[0][0]).toMatchObject({ agreedVolumeBytes: 1250000000, agreedVolumePeriod: 'MONTH' });
+});
+it('clears an existing volume agreement explicitly during editing', () => {
+  const save = vi.fn();
+  const pipeline = { id:'p', pipelineName:'P', clientFrom:'DWH', clientTo:'PC', primaryDatacenter:'SP', allOrNothing:false, tasks:[], createdAt:new Date(), updatedAt:new Date(), agreedVolumeBytes:1000000000, agreedVolumePeriod:'DAY' as const };
+  render(<PipelineFormModal isOpen mode='edit' pipeline={pipeline} onClose={vi.fn()} onSave={save} />);
+  fireEvent.change(screen.getByLabelText('Согласованный объём'), { target: { value: '' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Сохранить' }));
+  expect(save.mock.calls[0][0]).toMatchObject({ agreedVolumeBytes: 0 });
+});
+it('prevents creation navigation for fractional-byte or negative agreements', () => {
+  render(<PipelineFormModal isOpen mode='create' onClose={vi.fn()} onSave={vi.fn()} />);
+  fireEvent.change(screen.getByLabelText('Согласованный объём'), { target: { value: '-1' } });
+  general();
+  expect(screen.getByRole('alert')).toHaveTextContent('положительный объём');
+  expect(screen.getByLabelText('Согласованный объём')).toHaveAttribute('aria-invalid', 'true');
+});

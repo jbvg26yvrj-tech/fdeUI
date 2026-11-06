@@ -23,6 +23,8 @@ public class PipelinePageResponse {
     private String clientTo;
     private String primaryDatacenter;
     private boolean allOrNothing;
+    private Long agreedVolumeBytes;
+    private String agreedVolumePeriod;
     private int tasksCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

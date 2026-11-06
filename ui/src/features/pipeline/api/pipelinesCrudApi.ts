@@ -13,6 +13,8 @@ export interface CreatePipelineRequest {
   clientFrom: string;
   clientTo: string;
   primaryDatacenter?: string;
+  agreedVolumeBytes?: number;
+  agreedVolumePeriod?: 'RUN' | 'DAY' | 'MONTH';
   allOrNothing?: boolean;
   tasks: CreateTaskRequest[];
 }
@@ -22,6 +24,8 @@ export interface UpdatePipelineRequest {
   clientFrom?: string;
   clientTo?: string;
   primaryDatacenter?: string;
+  agreedVolumeBytes?: number;
+  agreedVolumePeriod?: 'RUN' | 'DAY' | 'MONTH';
   allOrNothing?: boolean;
   tasks?: CreateTaskRequest[];
 }

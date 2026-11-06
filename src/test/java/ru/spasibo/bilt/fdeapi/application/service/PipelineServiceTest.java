@@ -117,6 +117,42 @@ class PipelineServiceTest {
                 .build();
     }
 
+    @Test void bulkSelectionIsValidatedThenChunkedWithoutAnImplicitAllMode() {
+        var ids=java.util.stream.IntStream.range(0,2001).mapToObj(i->UUID.randomUUID()).toList();
+        when(pipelineRepository.bulkUpdateDatacenter(any(),any())).thenAnswer(inv->((List<?>)inv.getArgument(1)).size());
+        var response=pipelineService.bulkUpdateDatacenter(BulkDatacenterRequest.builder().datacenter("SC").pipelineIds(ids).build());
+        assertThat(response.getUpdatedCount()).isEqualTo(2001);
+        verify(pipelineRepository,org.mockito.Mockito.times(3)).bulkUpdateDatacenter(eq("SC"),any());
+        assertThatThrownBy(()->pipelineService.bulkUpdateDatacenter(BulkDatacenterRequest.builder().datacenter("SC").pipelineIds(List.of()).build())).isInstanceOf(PipelineValidationException.class);
+    }
+    @Test void deniedBulkSelectionMakesNoUpdates() {
+        UUID denied=UUID.randomUUID();
+        org.mockito.Mockito.doAnswer(inv -> { if (denied.equals(inv.getArgument(0))) throw new org.springframework.security.access.AccessDeniedException("denied"); return null; }).when(accessScopeService).requirePipeline(any());
+        assertThatThrownBy(()->pipelineService.bulkUpdateDatacenter(BulkDatacenterRequest.builder().datacenter("SC").pipelineIds(List.of(UUID.randomUUID(),denied)).build())).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+        verify(pipelineRepository,never()).bulkUpdateDatacenter(any(),any());
+    }
+    @Test void agreementRoundTripsDefaultsPreservesAndClears() {
+        var request=buildCreateRequest();request.setAgreedVolumeBytes(100L);
+        when(pipelineRepository.saveAndFlush(any(PipelineEntity.class))).thenAnswer(inv->inv.getArgument(0));
+        var created=pipelineService.create(request);
+        assertThat(created.getAgreedVolumeBytes()).isEqualTo(100L);
+        assertThat(created.getAgreedVolumePeriod()).isEqualTo("DAY");
+        var entity=buildPipelineEntity();entity.setAgreedVolumeBytes(200L);entity.setAgreedVolumePeriod("MONTH");
+        when(pipelineRepository.findById(PIPELINE_ID)).thenReturn(Optional.of(entity));
+        var unchanged=pipelineService.update(PIPELINE_ID,UpdatePipelineRequest.builder().build());
+        assertThat(unchanged.getAgreedVolumeBytes()).isEqualTo(200L);assertThat(unchanged.getAgreedVolumePeriod()).isEqualTo("MONTH");
+        var cleared=pipelineService.update(PIPELINE_ID,UpdatePipelineRequest.builder().agreedVolumeBytes(0L).build());
+        assertThat(cleared.getAgreedVolumeBytes()).isNull();assertThat(cleared.getAgreedVolumePeriod()).isEqualTo("DAY");
+    }
+    @Test void agreementRejectsNegativeUnsafeAndUnknownPeriod() {
+        var request=buildCreateRequest();request.setAgreedVolumeBytes(-1L);
+        assertThatThrownBy(()->pipelineService.create(request)).isInstanceOf(PipelineValidationException.class);
+        request.setAgreedVolumeBytes(9007199254740992L);
+        assertThatThrownBy(()->pipelineService.create(request)).isInstanceOf(PipelineValidationException.class);
+        request.setAgreedVolumeBytes(1L);request.setAgreedVolumePeriod("YEAR");
+        assertThatThrownBy(()->pipelineService.create(request)).isInstanceOf(PipelineValidationException.class);
+    }
+
     @Nested
     @DisplayName("create")
     class Create {

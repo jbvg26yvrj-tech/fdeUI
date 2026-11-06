@@ -38,6 +38,7 @@ def main():
         viewer = Client(base)
         viewer.login(creds)
         viewer.call('GET', '/analytics/config', expected=(403,))
+        viewer.call('GET', '/analytics/pipeline-summaries?ids=' + own[0]['id'], expected=(403,))
         admin.call('POST', '/roles/' + role_id + '/users', {'targetId': user_id})
         context = viewer.call('GET', '/user-context')
         pages = {c for c in context['resourceCodes'] if c.startswith('page.')}
@@ -45,6 +46,9 @@ def main():
         visible = {p['id'] for p in viewer.call('GET', '/pipelines?size=100')['content']}
         assert {p['id'] for p in own} <= visible
         assert not {p['id'] for p in hidden} & visible
+        summary_ids = ','.join(p['id'] for p in own)
+        assert {r['id'] for r in viewer.call('GET', '/analytics/pipeline-summaries?ids=' + summary_ids)} == {p['id'] for p in own}
+        viewer.call('GET', '/analytics/pipeline-summaries?ids=' + own[0]['id'] + ',' + hidden[0]['id'], expected=(403,))
         for pipeline in own:
             pid = pipeline['id']
             viewer.call('GET', '/pipelines/' + pid)

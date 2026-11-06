@@ -187,22 +187,22 @@ class PipelineControllerTest {
         }
 
         @Test
-        @DisplayName("should clamp page size to 100 when size > 100")
-        void pageSizeOverMax_clampedTo100() throws Exception {
+        @DisplayName("should clamp page size to 200 when size > 200")
+        void pageSizeOverMax_clampedTo200() throws Exception {
             PagedResponse<PipelinePageResponse> response = PagedResponse.<PipelinePageResponse>builder()
                     .content(Collections.emptyList())
                     .page(0)
-                    .size(100)
+                    .size(200)
                     .totalElements(0)
                     .totalPages(0)
                     .build();
 
-            when(pipelineService.getAll(eq(0), eq(100), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+            when(pipelineService.getAll(eq(0), eq(200), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
                     .thenReturn(response);
 
             mockMvc.perform(get("/api/v1/pipelines").param("size", "999"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.size").value(100));
+                    .andExpect(jsonPath("$.size").value(200));
         }
     }
 

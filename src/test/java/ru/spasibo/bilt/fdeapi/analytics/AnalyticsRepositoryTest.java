@@ -29,7 +29,7 @@ class AnalyticsRepositoryTest {
  UUID pipe=UUID.fromString("00000000-0000-0000-0000-000000000001"), other=UUID.fromString("00000000-0000-0000-0000-000000000002");
  LocalDateTime from=LocalDateTime.parse("2026-01-01T00:00:00");
  Query query(){return new Query(from,from.plusDays(1),null,null,null,null,"hour");}
- @BeforeEach void setup(){db.update("delete from sessions.processed_files");db.update("delete from sessions.task_sessions");db.update("delete from sessions.pipeline_sessions");db.update("delete from pipelines.pipelines"); when(scope.sessions()).thenReturn(Specification.allOf());
+ @BeforeEach void setup(){db.update("delete from sessions.processed_files");db.update("delete from sessions.task_sessions");db.update("delete from sessions.pipeline_sessions");db.update("delete from pipelines.pipelines"); when(scope.sessions()).thenReturn(Specification.allOf()); when(scope.pipelines()).thenReturn(Specification.allOf());
   for(UUID id:List.of(pipe,other))db.update("insert into pipelines.pipelines(id,pipeline_name,client_from,client_to,primary_datacenter,all_or_nothing,created_at,updated_at) values(?,?,?,?,?,false,?,?)",id,"pipe","DWH","PC","SP",from,from);
  }
  UUID session(UUID pipeline,String status,LocalDateTime time){UUID id=UUID.randomUUID();db.update("insert into sessions.pipeline_sessions(id,pipeline_id,start_dt,status,created_at,updated_at) values(?,?,?,?,?,?)",id,pipeline,time,status,time,time);return id;}
@@ -76,5 +76,47 @@ class AnalyticsRepositoryTest {
   var o=service.overview(query());assertThat(o.summary().sentFiles()).isEqualTo(1);
   assertThat(o.summary().sentBytes()).isZero();assertThat(o.summary().unknownSizeFiles()).isEqualTo(1);
   assertThat(o.extra().successfulEmptySessions()).isZero();
+ }
+
+ @Test void detailedFailureStreakIgnoresAbortedAndActiveSessions() {
+  session(pipe,"SUCCESS",from);session(pipe,"FAILED",from.plusHours(1));session(pipe,"ABORTED",from.plusHours(2));session(pipe,"ACTIVE",from.plusHours(3));
+  assertThat(service.overview(new Query(from,from.plusDays(1),pipe,null,null,null,"day")).extra().consecutiveFailures()).isEqualTo(1);
+ }
+ @Test void pipelineSummariesIgnoreAbortsResetOnSuccessAndFlagOnlyOutboundUnknownSizes() {
+  LocalDateTime today=LocalDate.now(ZoneId.of("Europe/Moscow")).atStartOfDay();
+  session(pipe,"FAILED",today.minusDays(2));session(pipe,"SUCCESS",today.minusDays(1));
+  UUID failed=session(pipe,"FAILED",today.plusHours(1));session(pipe,"ABORTED",today.plusHours(2));session(pipe,"ACTIVE",today.plusHours(3));
+  task(1,failed,"SftpUploadTask");file(1,1,"SUCCESS",10);file(2,1,"SUCCESS",-1);
+  task(2,failed,"SftpDownloadTask");file(3,2,"SUCCESS",-1);
+  db.update("update pipelines.pipelines set agreed_volume_bytes=100,agreed_volume_period='DAY' where id=?",pipe);
+  var summary=service.pipelineSummaries(List.of(pipe)).get(0);
+  assertThat(summary.consecutiveFailures()).isEqualTo(1);assertThat(summary.today().sentBytes()).isEqualTo(10);
+  assertThat(summary.today().unknownSizeFiles()).isEqualTo(2);assertThat(summary.periodUnknownSizeFiles()).isEqualTo(1);
+  assertThat(summary.periodSentBytes()).isEqualTo(10);assertThat(summary.sourceTimeZone()).isEqualTo("Europe/Moscow");
+  session(pipe,"SUCCESS",today.plusHours(4));assertThat(service.pipelineSummaries(List.of(pipe)).get(0).consecutiveFailures()).isZero();
+ }
+ @Test void summariesRespectBothPipelineAndSessionScopesIncludingAddedRoots() {
+  when(scope.pipelines()).thenReturn((p,q,cb)->cb.equal(p.get("id"),pipe));
+  assertThatThrownBy(()->service.pipelineSummaries(List.of(pipe,other))).isInstanceOf(org.springframework.security.access.AccessDeniedException.class);
+  LocalDateTime today=LocalDate.now(ZoneId.of("Europe/Moscow")).atStartOfDay();
+  UUID denied=session(pipe,"FAILED",today),allowed=session(pipe,"FAILED",today.plusHours(1));
+  task(1,denied,"SftpUploadTask");file(1,1,"SUCCESS",999);task(2,allowed,"SftpUploadTask");file(2,2,"SUCCESS",10);
+  when(scope.sessions()).thenReturn((s,q,cb)->{var p=q.from(PipelineEntity.class);return cb.and(cb.equal(s.get("pipelineId"),p.get("id")),cb.equal(s.get("id"),allowed));});
+  var summary=service.pipelineSummaries(List.of(pipe)).get(0);
+  assertThat(summary.today().sessions()).isEqualTo(1);assertThat(summary.today().sentBytes()).isEqualTo(10);assertThat(summary.consecutiveFailures()).isEqualTo(1);
+ }
+ @Test void runUsesLatestTerminalSessionAndTieBreaksByIdWhileMonthIncludesEarlierDays() {
+  LocalDateTime today=LocalDate.now(ZoneId.of("Europe/Moscow")).atStartOfDay();
+  UUID first=session(pipe,"SUCCESS",today.minusDays(40));UUID latest=session(pipe,"FAILED",today);
+  task(1,first,"SftpUploadTask");file(1,1,"SUCCESS",999);task(2,latest,"SftpUploadTask");file(2,2,"SUCCESS",10);
+  session(pipe,"ACTIVE",today.plusHours(1));
+  db.update("update pipelines.pipelines set agreed_volume_bytes=100,agreed_volume_period='RUN' where id=?",pipe);
+  assertThat(service.pipelineSummaries(List.of(pipe)).get(0).periodSentBytes()).isEqualTo(10);
+  UUID higher=UUID.fromString("ffffffff-ffff-ffff-ffff-ffffffffffff");
+  db.update("update sessions.pipeline_sessions set id=? where id=?",higher,session(pipe,"SUCCESS",today));
+  assertThat(service.pipelineSummaries(List.of(pipe)).get(0).consecutiveFailures()).isZero();
+  assertThat(service.pipelineSummaries(List.of(pipe)).get(0).periodSentBytes()).isZero();
+  db.update("update pipelines.pipelines set agreed_volume_period='MONTH' where id=?",pipe);
+  assertThat(service.pipelineSummaries(List.of(pipe)).get(0).periodSentBytes()).isEqualTo(10);
  }
 }

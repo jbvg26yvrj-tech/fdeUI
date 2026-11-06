@@ -24,6 +24,8 @@ public class PipelineResponse {
     private String clientTo;
     private String primaryDatacenter;
     private boolean allOrNothing;
+    private Long agreedVolumeBytes;
+    private String agreedVolumePeriod;
     private List<TaskResponse> tasks;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

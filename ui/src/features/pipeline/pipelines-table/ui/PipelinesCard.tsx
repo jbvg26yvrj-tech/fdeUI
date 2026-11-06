@@ -1,4 +1,6 @@
 import React from 'react';
+import { PipelineOperations } from '../../components/PipelineOperations';
+import type { PipelineSummary } from '../../api/pipelineSummaries';
 import type { ScheduleSummary } from '../../api/scheduleSummaries';
 import { ScheduleSummaryLabel } from '../../components/ScheduleSummaryLabel';
 
@@ -14,6 +16,9 @@ interface PipelineCardProps {
   returnTo?: string;
   pipeline: SimplePipelineData;
   scheduleSummary?: ScheduleSummary;
+  monitoringSummary?: PipelineSummary;
+  monitoringLoading?: boolean;
+  onSchedule?: (pipeline: SimplePipelineData) => void;
   permissions: {
     canPipelineDetails: boolean;
     canPipelineSessions: boolean;
@@ -35,6 +40,7 @@ export const PipelineCard: React.FC<PipelineCardProps> = ({
   onNavigate,
   returnTo,
   scheduleSummary,
+  monitoringSummary, monitoringLoading, onSchedule,
   permissions,
   onViewDetails,
   onViewSessions,
@@ -57,8 +63,9 @@ export const PipelineCard: React.FC<PipelineCardProps> = ({
     {
       key: 'schedule' as keyof SimplePipelineData,
       label: 'Расписание',
-      render: () => <ScheduleSummaryLabel summary={scheduleSummary} />,
+      render: () => <span className='relative z-10 inline-flex flex-col gap-1'><ScheduleSummaryLabel summary={scheduleSummary} />{onSchedule && <button type='button' className='text-blue-700 dark:text-blue-300 underline text-left' aria-label={`Расписание: ${pipeline.pipelineName}`} onClick={e => { e.stopPropagation(); onSchedule(pipeline); }}>Календарь</button>}</span>,
     },
+    { key: 'operations', label: 'Передача', render: () => <PipelineOperations pipelineId={pipeline.id} summary={monitoringSummary} loading={monitoringLoading} canSessions={permissions.canPipelineSessions} returnTo={returnTo} onNavigate={onNavigate} /> },
     {
       key: 'createdAt',
       label: 'Создан',

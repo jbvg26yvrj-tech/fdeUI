@@ -111,6 +111,9 @@ class ApiClient {
   private async fetchWithTimeout(url: string, options: RequestInit = {}): Promise<Response> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this.requestTimeout);
+    const abort = () => controller.abort();
+    if (options.signal?.aborted) abort();
+    options.signal?.addEventListener('abort', abort, { once: true });
 
     try {
       const response = await fetch(url, {
@@ -128,6 +131,7 @@ class ApiClient {
     } catch (error) {
       clearTimeout(timeoutId);
 
+      if (options.signal?.aborted) throw error;
       if (error instanceof Error && error.name === 'AbortError') {
         throw new ApiError('Request timeout', 408, 'TIMEOUT');
       }
@@ -142,6 +146,9 @@ class ApiClient {
       }
 
       throw error;
+    } finally {
+      clearTimeout(timeoutId);
+      options.signal?.removeEventListener('abort', abort);
     }
   }
 
@@ -198,8 +205,8 @@ class ApiClient {
     window.dispatchEvent(new CustomEvent('authTokenRefreshFailed'));
   }
 
-  async get<T>(endpoint: string): Promise<T> {
-    return this.requestWithRefresh<T>(endpoint, { method: 'GET' });
+  async get<T>(endpoint: string, signal?: AbortSignal): Promise<T> {
+    return this.requestWithRefresh<T>(endpoint, { method: 'GET', signal });
   }
 
   async post<T>(endpoint: string, data?: unknown): Promise<T> {

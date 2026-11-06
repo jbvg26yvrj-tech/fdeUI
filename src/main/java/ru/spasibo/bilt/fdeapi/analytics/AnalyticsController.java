@@ -12,6 +12,10 @@ public class AnalyticsController {
     public AnalyticsController(AnalyticsService service) {
         this.service=service;
     }
+    @GetMapping("/pipeline-summaries")
+    public java.util.List<PipelineSummary> pipelineSummaries(@RequestParam java.util.List<UUID> ids) {
+        return service.pipelineSummaries(ids);
+    }
     @GetMapping("/config")
     public Config config() {
         return service.config();

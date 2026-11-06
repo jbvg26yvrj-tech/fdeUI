@@ -29,6 +29,8 @@ export interface PipelineData {
   clientFrom: string;
   clientTo: string;
   primaryDatacenter: string;
+  agreedVolumeBytes?: number | null;
+  agreedVolumePeriod?: 'RUN' | 'DAY' | 'MONTH' | null;
   allOrNothing: boolean;
   tasks: Task[];
   createdAt: Date;
@@ -41,6 +43,8 @@ export interface SimplePipelineData {
   clientFrom: string;
   clientTo: string;
   primaryDatacenter: string;
+  agreedVolumeBytes?: number | null;
+  agreedVolumePeriod?: 'RUN' | 'DAY' | 'MONTH' | null;
   allOrNothing: boolean;
   tasksCount: number;
   createdAt: Date;

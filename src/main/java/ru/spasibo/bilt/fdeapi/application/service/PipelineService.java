@@ -74,6 +74,7 @@ public class PipelineService {
     @Transactional
     public PipelineResponse create(CreatePipelineRequest request) {
         accessScopeService.requireParticipants(request.getClientFrom(), request.getClientTo());
+        validateAgreement(request.getAgreedVolumeBytes(), request.getAgreedVolumePeriod(), false);
         validateTasks(request.getTasks());
 
         PipelineEntity entity = PipelineEntity.builder()
@@ -82,6 +83,8 @@ public class PipelineService {
                 .clientTo(request.getClientTo())
                 .primaryDatacenter(
                         request.getPrimaryDatacenter() != null ? request.getPrimaryDatacenter() : DEFAULT_DATACENTER)
+                .agreedVolumeBytes(request.getAgreedVolumeBytes())
+                .agreedVolumePeriod(request.getAgreedVolumePeriod() == null ? "DAY" : request.getAgreedVolumePeriod())
                 .allOrNothing(request.getAllOrNothing() != null ? request.getAllOrNothing() : false)
                 .build();
 
@@ -193,6 +196,15 @@ public class PipelineService {
         PipelineEntity entity = pipelineRepository.findById(id)
                 .orElseThrow(() -> new PipelineNotFoundException(id));
 
+        validateAgreement(request.getAgreedVolumeBytes(), request.getAgreedVolumePeriod(), true);
+        if (request.getAgreedVolumeBytes() != null && request.getAgreedVolumeBytes() == 0L) {
+            entity.setAgreedVolumeBytes(null);
+            entity.setAgreedVolumePeriod("DAY");
+        } else {
+            if (request.getAgreedVolumeBytes() != null) entity.setAgreedVolumeBytes(request.getAgreedVolumeBytes());
+            if (request.getAgreedVolumePeriod() != null) entity.setAgreedVolumePeriod(request.getAgreedVolumePeriod());
+        }
+
         if (request.getPipelineName() != null) {
             if (request.getPipelineName().isBlank()) {
                 throw new PipelineValidationException("Pipeline name cannot be blank");
@@ -277,10 +289,16 @@ public class PipelineService {
                     "Invalid datacenter: '" + dc + "'. Allowed: SC, SP");
         }
 
-        request.getPipelineIds().forEach(accessScopeService::requirePipeline);
+        if (request.getPipelineIds() == null || request.getPipelineIds().isEmpty()
+                || request.getPipelineIds().stream().anyMatch(Objects::isNull)) {
+            throw new PipelineValidationException("Pipeline IDs list must not be empty or contain null");
+        }
+        List<UUID> ids = request.getPipelineIds().stream().distinct().toList();
+        ids.forEach(accessScopeService::requirePipeline);
         int updatedCount = 0;
-        if (!request.getPipelineIds().isEmpty()) {
-            updatedCount = pipelineRepository.bulkUpdateDatacenter(dc, request.getPipelineIds());
+        // Keep all batches in this transaction and stay below PostgreSQL's bind limit.
+        for (int offset = 0; offset < ids.size(); offset += 1000) {
+            updatedCount += pipelineRepository.bulkUpdateDatacenter(dc, ids.subList(offset, Math.min(offset + 1000, ids.size())));
         }
 
         log.info("Массовое обновление дата-центра: {} пайплайнов -> {}", updatedCount, dc);
@@ -291,6 +309,15 @@ public class PipelineService {
     }
 
     // --- Приватные вспомогательные методы ---
+
+    private void validateAgreement(Long bytes, String period, boolean update) {
+        if (bytes != null && (bytes < (update ? 0L : 1L) || bytes > 9007199254740991L)) {
+            throw new PipelineValidationException("Agreed volume must be positive and no greater than 9007199254740991 bytes (zero clears on update)");
+        }
+        if (period != null && !Set.of("RUN", "DAY", "MONTH").contains(period)) {
+            throw new PipelineValidationException("Agreed volume period must be RUN, DAY or MONTH");
+        }
+    }
 
     private PipelineEntity saveWithUniqueNameCheck(PipelineEntity entity) {
         try {
@@ -439,6 +466,8 @@ public class PipelineService {
                 .clientTo(entity.getClientTo())
                 .primaryDatacenter(entity.getPrimaryDatacenter())
                 .allOrNothing(entity.isAllOrNothing())
+                .agreedVolumeBytes(entity.getAgreedVolumeBytes())
+                .agreedVolumePeriod(entity.getAgreedVolumePeriod())
                 .tasks(taskResponses)
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())
@@ -453,6 +482,8 @@ public class PipelineService {
                 .clientTo(entity.getClientTo())
                 .primaryDatacenter(entity.getPrimaryDatacenter())
                 .allOrNothing(entity.isAllOrNothing())
+                .agreedVolumeBytes(entity.getAgreedVolumeBytes())
+                .agreedVolumePeriod(entity.getAgreedVolumePeriod())
                 .tasksCount(entity.getTasks().size())
                 .createdAt(entity.getCreatedAt())
                 .updatedAt(entity.getUpdatedAt())

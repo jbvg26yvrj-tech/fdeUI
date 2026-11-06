@@ -1,3 +1,5 @@
+import { VolumeAgreementFields } from './VolumeAgreementFields';
+import { parseVolume, volumeFromBytes } from './volumeAgreement';
 import React, { useState, useEffect, useCallback } from 'react';
 import { PipelineCreateWizard } from './pipeline-wizard/PipelineCreateWizard';
 import { Modal } from '../../../shared/ui/Modal';
@@ -61,6 +63,8 @@ interface PipelineFormValues {
 }
 
 export interface PipelineFormSaveValues {
+  agreedVolumeBytes?: number;
+  agreedVolumePeriod?: 'RUN' | 'DAY' | 'MONTH';
   pipelineName: string;
   clientFrom: string;
   clientTo: string;
@@ -145,10 +149,12 @@ const PipelineEditFormModal: React.FC<PipelineFormModalProps> = ({
   isLoading = false,
 }) => {
   const [values, setValues] = useState<PipelineFormValues>(defaultFormValues);
+  const [volume, setVolume] = useState(() => volumeFromBytes());
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (isOpen) {
+      setVolume(volumeFromBytes(pipeline?.agreedVolumeBytes, pipeline?.agreedVolumePeriod));
       if (mode === 'edit' && pipeline) {
         setValues(pipelineToFormValues(pipeline));
       } else {
@@ -250,13 +256,15 @@ const PipelineEditFormModal: React.FC<PipelineFormModalProps> = ({
     if (!values.clientTo.trim()) {
       newErrors.clientTo = 'Клиент-получатель обязателен';
     }
+    const volumeError = parseVolume(volume.amount, volume.unit).error;
+    if (volumeError) newErrors.volume = volumeError;
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = () => {
     if (!validate()) return;
-    onSave(values);
+    onSave({ ...values, agreedVolumeBytes: parseVolume(volume.amount, volume.unit).bytes ?? 0, agreedVolumePeriod: volume.period });
   };
 
   const title = mode === 'create' ? 'Создание пайплайна' : 'Редактирование пайплайна';
@@ -326,6 +334,8 @@ const PipelineEditFormModal: React.FC<PipelineFormModalProps> = ({
             required
           />
         </div>
+
+        <VolumeAgreementFields value={volume} onChange={setVolume} />
 
         {/* Tasks section */}
         <div className='border-t border-gray-200 dark:border-gray-700 pt-4'>

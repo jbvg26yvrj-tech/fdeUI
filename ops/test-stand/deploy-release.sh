@@ -44,4 +44,5 @@ k get pods
 curl --fail --silent --show-error -o /dev/null https://37.235.241.58/
 python3 ops/test-stand/smoke_audit.py https://37.235.241.58 "$stand_dir/credentials.json"
 python3 ops/test-stand/smoke_client_viewer.py https://37.235.241.58 "$stand_dir/credentials.json"
+python3 ops/test-stand/smoke_pipeline_operations.py https://37.235.241.58 "$stand_dir/credentials.json"
 printf 'Release %s is ready; source %s\n' "$image_tag" "$release_dir"

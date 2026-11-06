@@ -129,16 +129,9 @@ public class AnalyticsRepository  {
         .map(r->new CommonError(r.get(0,String.class),((Number)r.get(1)).longValue())).toList();
         Long streak=null;
         if(f.pipelineId()!=null)  {
-            var boundary=cb.createQuery(LocalDateTime.class);
-            var b=boundary.from(PipelineSessionEntity.class);
-            boundary.select(cb.greatest(b.<LocalDateTime>get("startDt"))).where(cb.and(filter(f,b,boundary,true,null),cb.or(cb.notEqual(b.get("status"),"FAILED"),cb.isNull(b.get("status")))));
-            LocalDateTime lastOther=em.createQuery(boundary).getSingleResult();
-            var count=cb.createQuery(Long.class);
-            var r=count.from(PipelineSessionEntity.class);
-            Predicate p=filter(f,r,count,true,"FAILED");
-            if(lastOther!=null)p=cb.and(p,cb.greaterThan(r.get("startDt"),lastOther));
-            count.select(cb.count(r)).where(p);
-            streak=em.createQuery(count).getSingleResult();
+            var ids = List.of(f.pipelineId());
+            streak = summaryFailureCounts(ids, latestSummarySessions(ids, Set.of("SUCCESS"), f), f)
+                    .getOrDefault(f.pipelineId(), 0L);
         }
         return new Extra(streak,empty,common);
     }
@@ -169,5 +162,147 @@ public class AnalyticsRepository  {
             match=cb.or(match,cb.equal(p.get("id"),UUID.fromString(value)));
         }
         return cb.and(access,match);
+    }
+    /** All input IDs must be visible. Every session/file query independently applies session scope. */
+    public List<PipelineSummary> pipelineSummaries(List<UUID> ids, LocalDateTime today, String zone) {
+        var cb = em.getCriteriaBuilder();
+        var metadata = cb.createTupleQuery();
+        var p = metadata.from(PipelineEntity.class);
+        metadata.multiselect(p.get("id"), p.get("agreedVolumeBytes"), p.get("agreedVolumePeriod"))
+                .where(cb.and(pipelineFilter(null, p, metadata), p.get("id").in(ids)));
+        var rows = em.createQuery(metadata).getResultList();
+        if (rows.size() != ids.size()) throw new org.springframework.security.access.AccessDeniedException("Pipeline access denied");
+        Map<UUID, Tuple> agreements = new HashMap<>();
+        rows.forEach(row -> agreements.put(row.get(0, UUID.class), row));
+        var success = latestSummarySessions(ids, Set.of("SUCCESS"));
+        var runIds = rows.stream().filter(row -> "RUN".equals(row.get(2, String.class))).map(row -> row.get(0, UUID.class)).toList();
+        var monthIds = rows.stream().filter(row -> "MONTH".equals(row.get(2, String.class))).map(row -> row.get(0, UUID.class)).toList();
+        var runs = runIds.isEmpty() ? Map.<UUID, SessionBoundary>of()
+                : latestSummarySessions(runIds, Set.of("SUCCESS", "FAILED", "ABORTED"));
+        var streaks = summaryFailureCounts(ids, success);
+        var daily = summaryTotals(ids, today, today.plusDays(1), null);
+        var monthly = monthIds.isEmpty() ? Map.<UUID, SummaryTotals>of()
+                : summaryTotals(monthIds, today.withDayOfMonth(1), today.withDayOfMonth(1).plusMonths(1), null);
+        var runTotals = runs.isEmpty() ? Map.<UUID, SummaryTotals>of()
+                : summaryTotals(ids, null, null, runs.values().stream().map(SessionBoundary::id).toList());
+        return ids.stream().map(id -> {
+            var agreement = agreements.get(id);
+            String period = agreement.get(2, String.class);
+            if (period == null) period = "DAY";
+            SummaryTotals used = switch (period) {
+                case "RUN" -> runTotals.getOrDefault(id, new SummaryTotals());
+                case "MONTH" -> monthly.getOrDefault(id, new SummaryTotals());
+                default -> daily.getOrDefault(id, new SummaryTotals());
+            };
+            return new PipelineSummary(id, streaks.getOrDefault(id, 0L),
+                    daily.getOrDefault(id, new SummaryTotals()).totals, agreement.get(1, Long.class),
+                    period, used.totals.sentBytes(), used.outboundUnknownSizes, zone);
+        }).toList();
+    }
+
+    private record SessionBoundary(LocalDateTime start, UUID id) {}
+    private static class SummaryTotals {
+        final Totals totals = new Totals();
+        long outboundUnknownSizes;
+    }
+    private Predicate summaryScope(List<UUID> ids, Root<PipelineSessionEntity> s, CriteriaQuery<?> q) {
+        var cb = em.getCriteriaBuilder();
+        var access = scope.sessions().toPredicate(s, q, cb);
+        return cb.and(access == null ? cb.conjunction() : access, s.get("pipelineId").in(ids));
+    }
+    /** Two bounded scalar result sets: latest start, then greatest textual UUID at that start.
+     * Canonical UUID lexical order equals PostgreSQL UUID order and resolves timestamp ties. */
+    private Map<UUID, SessionBoundary> latestSummarySessions(List<UUID> ids, Set<String> statuses) {
+        return latestSummarySessions(ids, statuses, null);
+    }
+    private Map<UUID, SessionBoundary> latestSummarySessions(List<UUID> ids, Set<String> statuses, Query period) {
+        var cb = em.getCriteriaBuilder();
+        var times = cb.createTupleQuery();
+        var s = times.from(PipelineSessionEntity.class);
+        times.multiselect(s.get("pipelineId"), cb.greatest(s.<LocalDateTime>get("startDt")))
+                .where(cb.and(summarySelection(ids, s, times, period), s.get("status").in(statuses)))
+                .groupBy(s.get("pipelineId"));
+        var starts = em.createQuery(times).getResultList();
+        if (starts.isEmpty()) return Map.of();
+        var lastIds = cb.createTupleQuery();
+        var r = lastIds.from(PipelineSessionEntity.class);
+        var pairs = starts.stream().map(t -> cb.and(cb.equal(r.get("pipelineId"), t.get(0, UUID.class)),
+                cb.equal(r.get("startDt"), t.get(1, LocalDateTime.class)))).toArray(Predicate[]::new);
+        // Hibernate 6.6 requires cast(), as() only changes the expression's Java type.
+        Expression<String> uuidText = ((org.hibernate.query.criteria.JpaExpression<UUID>) r.<UUID>get("id")).cast(String.class);
+        lastIds.multiselect(r.get("pipelineId"), cb.greatest(uuidText))
+                .where(cb.and(summarySelection(ids, r, lastIds, period), r.get("status").in(statuses), cb.or(pairs)))
+                .groupBy(r.get("pipelineId"));
+        Map<UUID, LocalDateTime> startById = new HashMap<>();
+        starts.forEach(t -> startById.put(t.get(0, UUID.class), t.get(1, LocalDateTime.class)));
+        Map<UUID, SessionBoundary> result = new HashMap<>();
+        for (var row : em.createQuery(lastIds).getResultList()) {
+            UUID pipelineId = row.get(0, UUID.class);
+            result.put(pipelineId, new SessionBoundary(startById.get(pipelineId), UUID.fromString(row.get(1, String.class))));
+        }
+        return result;
+    }
+    private Map<UUID, Long> summaryFailureCounts(List<UUID> ids, Map<UUID, SessionBoundary> successes) {
+        return summaryFailureCounts(ids, successes, null);
+    }
+    private Map<UUID, Long> summaryFailureCounts(List<UUID> ids, Map<UUID, SessionBoundary> successes, Query period) {
+        var cb = em.getCriteriaBuilder();
+        var q = cb.createTupleQuery();
+        var s = q.from(PipelineSessionEntity.class);
+        List<Predicate> ranges = new ArrayList<>();
+        for (UUID id : ids) {
+            Predicate range = cb.equal(s.get("pipelineId"), id);
+            SessionBoundary last = successes.get(id);
+            if (last != null) range = cb.and(range, cb.or(cb.greaterThan(s.get("startDt"), last.start()),
+                    cb.and(cb.equal(s.get("startDt"), last.start()), cb.greaterThan(s.<UUID>get("id"), last.id()))));
+            ranges.add(range);
+        }
+        q.multiselect(s.get("pipelineId"), cb.count(s))
+                .where(cb.and(summarySelection(ids, s, q, period), cb.equal(s.get("status"), "FAILED"), cb.or(ranges.toArray(Predicate[]::new))))
+                .groupBy(s.get("pipelineId"));
+        Map<UUID, Long> result = new HashMap<>();
+        em.createQuery(q).getResultList().forEach(t -> result.put(t.get(0, UUID.class), ((Number)t.get(1)).longValue()));
+        return result;
+    }
+    private Predicate summarySelection(List<UUID> ids, Root<PipelineSessionEntity> s, CriteriaQuery<?> q, Query period) {
+        if (period == null) return summaryScope(ids, s, q);
+        return em.getCriteriaBuilder().and(filter(period, s, q, true, null), s.get("pipelineId").in(ids));
+    }
+    private Predicate summaryRange(List<UUID> ids, Root<PipelineSessionEntity> s, CriteriaQuery<?> q,
+                                   LocalDateTime from, LocalDateTime to, List<UUID> runs) {
+        var cb = em.getCriteriaBuilder();
+        Predicate p = summaryScope(ids, s, q);
+        if (runs != null) return cb.and(p, s.get("id").in(runs));
+        return cb.and(p, cb.greaterThanOrEqualTo(s.get("startDt"), from), cb.lessThan(s.get("startDt"), to));
+    }
+    private Map<UUID, SummaryTotals> summaryTotals(List<UUID> ids, LocalDateTime from, LocalDateTime to, List<UUID> runs) {
+        var cb = em.getCriteriaBuilder();
+        Map<UUID, SummaryTotals> result = new HashMap<>();
+        var statuses = cb.createTupleQuery();
+        var session = statuses.from(PipelineSessionEntity.class);
+        statuses.multiselect(session.get("pipelineId"), session.get("status"), cb.count(session))
+                .where(summaryRange(ids, session, statuses, from, to, runs)).groupBy(session.get("pipelineId"), session.get("status"));
+        for (var row : em.createQuery(statuses).getResultList()) {
+            result.computeIfAbsent(row.get(0, UUID.class), k -> new SummaryTotals()).totals
+                    .addStatus(row.get(1, String.class), ((Number)row.get(2)).longValue());
+        }
+        var files = cb.createTupleQuery();
+        var s = files.from(PipelineSessionEntity.class);
+        var task = s.join("taskSessions");
+        var file = task.join("processedFiles");
+        Expression<Long> known = cb.<Long>selectCase().when(cb.ge(file.<Long>get("fileSize"), 0L), file.<Long>get("fileSize")).otherwise(0L);
+        Expression<Long> unknown = cb.<Long>selectCase().when(cb.or(cb.isNull(file.get("fileSize")), cb.lt(file.<Long>get("fileSize"), 0L)), 1L).otherwise(0L);
+        Set<String> types = new HashSet<>(DOWNLOAD); types.addAll(UPLOAD);
+        files.multiselect(s.get("pipelineId"), task.get("typeCode"), file.get("status"), cb.count(file), cb.sum(known), cb.sum(unknown))
+                .where(cb.and(summaryRange(ids, s, files, from, to, runs), task.get("typeCode").in(types)))
+                .groupBy(s.get("pipelineId"), task.get("typeCode"), file.get("status"));
+        for (var row : em.createQuery(files).getResultList()) {
+            var totals = result.computeIfAbsent(row.get(0, UUID.class), k -> new SummaryTotals());
+            addFile(totals.totals, row);
+            if (UPLOAD.contains(row.get(1, String.class)) && "SUCCESS".equals(row.get(2, String.class))) {
+                totals.outboundUnknownSizes += ((Number)row.get(5)).longValue();
+            }
+        }
+        return result;
     }
 }

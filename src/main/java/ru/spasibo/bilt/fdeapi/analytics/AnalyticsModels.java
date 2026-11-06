@@ -14,6 +14,10 @@ public final class AnalyticsModels {
              String datacenter,
              String bucket) {
     }
+    public record PipelineSummary(UUID id, long consecutiveFailures, Totals today,
+            Long agreedVolumeBytes, String agreedVolumePeriod, long periodSentBytes,
+            long periodUnknownSizeFiles, String sourceTimeZone) {}
+
     public record Config(String sourceTimeZone, boolean testStand) {
     }
     public record Overview(Totals summary,

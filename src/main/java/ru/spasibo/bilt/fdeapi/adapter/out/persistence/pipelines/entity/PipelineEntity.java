@@ -51,6 +51,14 @@ public class PipelineEntity {
     @Column(name = "all_or_nothing", nullable = false)
     private boolean allOrNothing = false;
 
+    @Column(name = "agreed_volume_bytes")
+    private Long agreedVolumeBytes;
+
+    @org.hibernate.annotations.ColumnDefault("'DAY'")
+    @Column(name = "agreed_volume_period", nullable = false, length = 5)
+    @Builder.Default
+    private String agreedVolumePeriod = "DAY";
+
     @OneToMany(mappedBy = "pipeline", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("taskOrder ASC")
     @BatchSize(size = 50)

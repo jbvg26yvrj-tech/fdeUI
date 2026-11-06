@@ -1,3 +1,4 @@
+import { DailyTransfers } from '../../features/analytics/DailyTransfers';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../shared/api/apiClient';
@@ -522,6 +523,7 @@ function AnalyticsContent({
               {warning}
             </p>
           ))}
+          {data.bucket === 'day' && <DailyTransfers rows={data.series} zone={data.sourceTimeZone} onSelect={time => drill(time)} />}
           <p className='monitor-note'>
             Шаг графика: {data.bucket === 'hour' ? 'час' : 'день'}. До 400 точек. Обновлено:{' '}
             {data.generatedAt}.
