@@ -37,7 +37,7 @@ Existing role/RLS controls remain authoritative. No automatic disabling. No secr
 ## Task 5: Combined verification
 - [x] Run UI tests, TypeScript and production build; Java tests where runtime available.
 - [x] Review regression, source diff and migrations; update Web UI guide.
-- [ ] Deploy verified artifact through existing teststand rollout/backup/smoke steps; verify PostgreSQL migration and actual served assets. Authenticated browser check was not performed: automatic review rejected exporting the stand credentials; credentials remain on the server.
+- [x] Deploy verified artifact through existing teststand rollout/backup/smoke steps; verify PostgreSQL migration and actual served assets. Authenticated browser check was not performed: automatic review rejected exporting the stand credentials; credentials remain on the server.
 
 ## Verification ledger
 
@@ -49,3 +49,7 @@ Existing role/RLS controls remain authoritative. No automatic disabling. No secr
 - Failed manual launch is not retried without an idempotency contract.
 - Active datacenter wizard recovery remains in browser memory; UI warns against reload/close.
 - Migration does not require ownership of executor-managed sessions tables.
+
+## Teststand result
+
+Release `pipeline-operations-20261106` deployed to minikube namespace `fde`. API pod Ready 1/1, zero restarts at verification. Audit, client viewer scoping and pipeline operations smoke checks passed on PostgreSQL. All 45 public UI files match the tested JAR byte-for-byte over HTTPS. No working flows were launched by smoke checks. The executor remains a test stub.
